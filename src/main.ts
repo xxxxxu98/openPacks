@@ -552,7 +552,7 @@ function cardFront(packId: string, card: { id: string; name: string }, sheen: bo
     front.append(img);
   }
   front.append(el("p", "card-name", card.name));
-  if (sheen) front.append(el("div", "sheen"));
+  if (sheen && artFiles?.has(rel)) front.append(el("div", "sheen"));
   return front;
 }
 
@@ -829,6 +829,11 @@ function moveFloater(index: number, elapsed: number, rarity: Rarity): void {
   floaterEl.style.top = `${y}px`;
   floaterEl.style.transform = `translate(-50%, -50%) rotate(${tilt}deg) scale(${scale})`;
   floaterInner.style.transform = `rotateY(${spin}deg)`;
+  const showFront = spin >= 90;
+  const back = floaterInner.querySelector<HTMLElement>(".card-back");
+  const front = floaterInner.querySelector<HTMLElement>(".card-front");
+  if (back) back.style.visibility = showFront ? "hidden" : "visible";
+  if (front) front.style.visibility = showFront ? "visible" : "hidden";
   const edgeLit = elapsed >= FLOAT_MS && elapsed < landStart;
   floaterEl.classList.toggle("edge-flash", edgeLit && rarity === "flash");
   floaterEl.classList.toggle("edge-gold", edgeLit && rarity === "gold");
@@ -945,7 +950,7 @@ function onHash(): void {
   renderPage();
 }
 
-// 用真实经过的时间回弹裂口，或推进翻面
+// 按两次绘制之间的时间回弹裂口，或推进翻面
 function stepFrame(now: number): void {
   const dt = lastTick === 0 ? 16 : Math.min(64, now - lastTick);
   lastTick = now;
