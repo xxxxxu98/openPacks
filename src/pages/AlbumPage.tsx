@@ -89,7 +89,9 @@ export function AlbumPage() {
               className="slot-owned"
               onClick={() => setActiveId(card.id)}
             >
-              <CardVisual card={card} size="sm" />
+              <span className="card-fit">
+                <CardVisual card={card} size="sm" />
+              </span>
               <span className="slot-count">×{count}</span>
             </button>
           )

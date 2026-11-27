@@ -108,7 +108,9 @@ export function PackDetail({ offerId, onClose }: PackDetailProps) {
                     aria-label={`${card.name}，${RARITY_LABEL[card.rarity]}`}
                     onClick={() => setActiveId(card.id)}
                   >
-                    <CardVisual card={card} size="sm" />
+                    <span className="card-fit">
+                      <CardVisual card={card} size="sm" />
+                    </span>
                   </button>
                 ))}
               </div>

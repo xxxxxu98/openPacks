@@ -1,13 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import type { PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { RARITY_LABEL, RARITY_TONE, formatSerial } from '../data/catalog'
+import { useCardPose } from '../hooks/useCardPose'
 import { salvageCard, useGameState } from '../store/useGameStore'
 import type { CardDef } from '../types/game'
 import { CardVisual } from './CardVisual'
-
-const ZOOM_MIN = 0.6
-const ZOOM_MAX = 2.4
 
 type CardInspectProps = {
   card: CardDef
@@ -15,28 +12,24 @@ type CardInspectProps = {
   onClose: () => void
 }
 
-function clampZoom(value: number) {
-  const stepped = Math.round(value * 10) / 10
-  return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, stepped))
-}
-
 /** 放大检视一张卡。打开时略侧过来，能看见薄薄的卡边；可缩放、旋转，拖动改倾斜。 */
 export function CardInspect({ card, isNew = false, onClose }: CardInspectProps) {
   const owned = useGameState().owned[card.id] ?? 0
   const closeRef = useRef<HTMLButtonElement>(null)
-  const stageRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
-  const drag = useRef<{ x: number; y: number; tiltX: number; tiltY: number } | null>(null)
-  const [zoom, setZoom] = useState(1)
+  const pose = useCardPose({ tiltX: 14, tiltY: -32 })
   const [turn, setTurn] = useState(0)
-  const [tiltX, setTiltX] = useState(14)
-  const [tiltY, setTiltY] = useState(-32)
-  const [dragging, setDragging] = useState(false)
 
   onCloseRef.current = onClose
 
+  /** 把缩放、旋转和倾斜收回最初的正面。 */
+  function resetView() {
+    setTurn(0)
+    pose.reset()
+  }
+
   useEffect(() => {
-    // 方向键旋转，加减号缩放，滚轮缩放，Esc 关闭。
+    // 方向键旋转，加减号缩放，Esc 关闭。
     closeRef.current?.focus()
     const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -50,51 +43,16 @@ export function CardInspect({ card, isNew = false, onClose }: CardInspectProps) 
         event.preventDefault()
         setTurn((value) => value + 90)
       }
-      if (event.key === '-' || event.key === '_') setZoom((value) => clampZoom(value - 0.2))
-      if (event.key === '=' || event.key === '+') setZoom((value) => clampZoom(value + 0.2))
+      if (event.key === '-' || event.key === '_') pose.zoomBy(-0.2)
+      if (event.key === '=' || event.key === '+') pose.zoomBy(0.2)
       if (event.key === '0') resetView()
     }
-    const stage = stageRef.current
-    const onWheel = (event: WheelEvent) => {
-      event.preventDefault()
-      setZoom((value) => clampZoom(value + (event.deltaY > 0 ? -0.1 : 0.1)))
-    }
-    stage?.addEventListener('wheel', onWheel, { passive: false })
     window.addEventListener('keydown', onKey)
     return () => {
       document.body.style.overflow = previous
       window.removeEventListener('keydown', onKey)
-      stage?.removeEventListener('wheel', onWheel)
     }
   }, [])
-
-  /** 把缩放、旋转和倾斜收回最初的正面。 */
-  function resetView() {
-    setZoom(1)
-    setTurn(0)
-    setTiltX(0)
-    setTiltY(0)
-  }
-
-  function onPointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (event.button !== 0) return
-    event.currentTarget.setPointerCapture(event.pointerId)
-    drag.current = { x: event.clientX, y: event.clientY, tiltX, tiltY }
-    setDragging(true)
-  }
-
-  /** 按指针位移改俯仰和左右倾斜。 */
-  function onPointerMove(event: ReactPointerEvent<HTMLDivElement>) {
-    const start = drag.current
-    if (!start) return
-    setTiltY(start.tiltY + (event.clientX - start.x) * 0.45)
-    setTiltX(start.tiltX - (event.clientY - start.y) * 0.35)
-  }
-
-  function onPointerUp() {
-    drag.current = null
-    setDragging(false)
-  }
 
   return createPortal(
     <div className="inspect" role="dialog" aria-modal="true" aria-label={`${card.name} 详情`}>
@@ -105,20 +63,15 @@ export function CardInspect({ card, isNew = false, onClose }: CardInspectProps) 
         </button>
         <div className="inspect-view">
           <div
-            ref={stageRef}
-            className={`inspect-stage${dragging ? ' is-dragging' : ''}`}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={onPointerUp}
+            ref={pose.ref}
+            className={`inspect-stage${pose.dragging ? ' is-dragging' : ''}`}
+            onPointerDown={pose.onPointerDown}
+            onPointerMove={pose.onPointerMove}
+            onPointerUp={pose.onPointerUp}
+            onPointerCancel={pose.onPointerUp}
           >
-            <div
-              className="inspect-pose"
-              style={{
-                transform: `scale(${zoom}) rotateX(${tiltX}deg) rotateY(${tiltY}deg) rotate(${turn}deg)`,
-              }}
-            >
-              <CardVisual card={card} size="lg" still thick isNew={isNew} />
+            <div className="inspect-pose" style={{ transform: `${pose.transform} rotate(${turn}deg)` }}>
+              <CardVisual card={card} size="lg" still thick sweep isNew={isNew} />
             </div>
           </div>
         </div>

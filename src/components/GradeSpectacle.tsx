@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { RARITY_LABEL } from '../data/catalog'
 import { GRADE_HIT_MS, GRADE_HIT_SEC } from '../gradeHit'
+import { useCardPose } from '../hooks/useCardPose'
 import type { CardDef, Rarity } from '../types/game'
 import { CardVisual } from './CardVisual'
 
@@ -22,7 +23,7 @@ type GradeSpectacleProps = {
   onClose: () => void
 }
 
-/** 高等级翻开后霸屏：先飞到正中，落地再爆发，点蒙层才收起。 */
+/** 高等级翻开后霸屏。卡上拖拽旋转、滚轮缩放，点蒙层才收起。 */
 export function GradeSpectacle({ rarity, card, isNew, x, y, onClose }: GradeSpectacleProps) {
   const rich = rarity !== 'SR'
   const secret = rarity === 'SECRET'
@@ -30,6 +31,7 @@ export function GradeSpectacle({ rarity, card, isNew, x, y, onClose }: GradeSpec
   const closeRef = useRef(onClose)
   const armedRef = useRef(false)
   const leavingRef = useRef(false)
+  const pose = useCardPose()
   const [leaving, setLeaving] = useState(false)
   const leaveTimer = useRef(0)
   closeRef.current = onClose
@@ -156,8 +158,21 @@ export function GradeSpectacle({ rarity, card, isNew, x, y, onClose }: GradeSpec
               </span>
               <small className="grade-card-name">{card.name}</small>
             </div>
-            <div className="grade-hero">
-              <CardVisual card={card} size="lg" still isNew={isNew} sweep={rich} />
+            <div className={`grade-hero grade-hero-${rarity}`}>
+              <div
+                ref={pose.ref}
+                className={`grade-pose${pose.dragging ? ' is-dragging' : ''}`}
+                style={{ transform: pose.transform }}
+                onPointerDown={pose.onPointerDown}
+                onPointerMove={pose.onPointerMove}
+                onPointerUp={pose.onPointerUp}
+                onPointerCancel={pose.onPointerUp}
+                onDragStart={(event) => event.preventDefault()}
+              >
+                <div className="grade-hero-glow">
+                  <CardVisual card={card} size="lg" still sweep isNew={isNew} />
+                </div>
+              </div>
             </div>
           </div>
           <p className="grade-hint">点击蒙层继续</p>

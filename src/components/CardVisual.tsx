@@ -151,7 +151,8 @@ export function CardVisual({
         <span className="leaf-grade">{RARITY_LABEL[card.rarity]}</span>
       </footer>
       <div className="card-glare" />
-      {sweep ? <i className={`card-foil card-foil-${card.rarity}`} aria-hidden /> : null}
+      {/* 特级和秘藏才走扫光。 */}
+      {sweep && silk ? <i className={`card-foil card-foil-${card.rarity}`} aria-hidden /> : null}
     </div>
   )
 
