@@ -106,8 +106,11 @@ a { text-decoration: none; }
   left: 0;
   right: 0;
   bottom: 8px;
+  z-index: 2;
   text-align: center;
   font-weight: 600;
+  pointer-events: none;
+  text-shadow: 0 0 6px #fff, 0 1px 2px #fff;
 }
 .pack-slot canvas, .stage-view canvas, .inspect-view canvas {
   display: block;
