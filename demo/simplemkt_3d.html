@@ -1,0 +1,2491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>PRISM // 01 · 3D 光学拆卡展厅</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-dark: #030504;
+      --accent-emerald: #10b981;
+      --accent-gold: #fbbf24;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      color: #f4f7f6;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* ==================== 深邃暗房空间、体积光柱与烟雾 ==================== */
+    .studio-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(circle at 50% 36%, #0c1412 0%, #050706 60%, #010202 100%);
+      overflow: hidden;
+    }
+
+    .volumetric-beams {
+      position: absolute;
+      inset: -10% 0 0 0;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg,
+          transparent 8%,
+          rgba(255, 255, 255, 0.016) 14%,
+          transparent 20%,
+          rgba(167, 243, 208, 0.022) 29%,
+          transparent 36%,
+          rgba(255, 255, 255, 0.04) 48%,
+          rgba(253, 224, 71, 0.035) 50%,
+          rgba(255, 255, 255, 0.04) 52%,
+          transparent 64%,
+          rgba(167, 243, 208, 0.022) 71%,
+          transparent 80%,
+          rgba(255, 255, 255, 0.016) 86%,
+          transparent 92%
+        );
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.45) 68%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.45) 68%, transparent 100%);
+      animation: beamPulse 7.5s ease-in-out infinite alternate;
+      transition: filter 0.6s ease, opacity 0.6s ease;
+    }
+
+    .volumetric-beams.gold-surge {
+      background:
+        linear-gradient(90deg,
+          transparent 10%,
+          rgba(251, 191, 36, 0.08) 20%,
+          transparent 30%,
+          rgba(253, 224, 71, 0.18) 43%,
+          rgba(255, 252, 232, 0.38) 50%,
+          rgba(253, 224, 71, 0.18) 57%,
+          transparent 70%,
+          rgba(251, 191, 36, 0.08) 80%,
+          transparent 90%
+        );
+      filter: brightness(1.5);
+    }
+
+    @keyframes beamPulse {
+      0% { opacity: 0.7; transform: scaleX(0.98); }
+      100% { opacity: 1; transform: scaleX(1.03); }
+    }
+
+    .studio-spotlight {
+      position: absolute;
+      top: -15%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 72vw;
+      height: 88vh;
+      background: conic-gradient(from 160deg at 50% 0%, transparent 0deg, rgba(167, 243, 208, 0.045) 14deg, rgba(255, 255, 255, 0.09) 20deg, rgba(167, 243, 208, 0.045) 26deg, transparent 40deg);
+      filter: blur(22px);
+      pointer-events: none;
+    }
+
+    .smoke-layer {
+      position: absolute;
+      inset: -10%;
+      pointer-events: none;
+      opacity: 0.42;
+      background:
+        radial-gradient(ellipse 46% 30% at 24% 68%, rgba(148, 163, 184, 0.13), transparent 70%),
+        radial-gradient(ellipse 52% 32% at 76% 64%, rgba(110, 231, 183, 0.09), transparent 72%),
+        radial-gradient(ellipse 60% 35% at 50% 78%, rgba(251, 191, 36, 0.08), transparent 75%);
+      filter: blur(28px);
+      animation: smokeDrift 16s ease-in-out infinite alternate;
+    }
+
+    @keyframes smokeDrift {
+      0% { transform: translate(-3%, 1%) scale(1); }
+      50% { transform: translate(2%, -2%) scale(1.06); }
+      100% { transform: translate(4%, 1%) scale(1.02); }
+    }
+
+    .studio-floor {
+      position: absolute;
+      bottom: -8%;
+      left: -10%;
+      right: -10%;
+      height: 36vh;
+      background:
+        radial-gradient(ellipse at 50% 25%, rgba(251, 191, 36, 0.08) 0%, rgba(52, 211, 153, 0.06) 35%, transparent 68%),
+        linear-gradient(to bottom, transparent 0%, rgba(1, 3, 2, 0.96) 85%);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      transform: perspective(600px) rotateX(68deg);
+      pointer-events: none;
+    }
+
+    #dust-canvas, #fx-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+    #dust-canvas { z-index: 1; }
+    #fx-canvas { z-index: 60; }
+
+    #golden-explosion-flash {
+      position: fixed;
+      inset: 0;
+      z-index: 35;
+      pointer-events: none;
+      opacity: 0;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(255, 251, 235, 0.95) 0%, rgba(251, 191, 36, 0.55) 28%, rgba(217, 119, 6, 0.18) 55%, transparent 78%),
+        linear-gradient(90deg, transparent 22%, rgba(253, 224, 71, 0.35) 46%, rgba(255, 255, 255, 0.65) 50%, rgba(253, 224, 71, 0.35) 54%, transparent 78%);
+      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* 屏幕微震 */
+    @keyframes screenShake {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-4px, 3px); }
+      40% { transform: translate(4px, -3px); }
+      60% { transform: translate(-3px, -2px); }
+      80% { transform: translate(3px, 2px); }
+    }
+    .is-screen-shaking {
+      animation: screenShake 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+    }
+
+    /* 页面切换流畅过渡 */
+    @keyframes viewReveal {
+      0% {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .view-animate-in {
+      animation: viewReveal 0.42s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* ==================== 哑光黑微纹理卡包 & 弹性毛边撕裂动态 ==================== */
+    .pack-stage {
+      perspective: 1400px;
+      transform-style: preserve-3d;
+    }
+
+    .foil-pack-wrapper {
+      position: relative;
+      width: 248px;
+      height: 362px;
+      transform-style: preserve-3d;
+      transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
+      cursor: grab;
+      will-change: transform;
+    }
+    .foil-pack-wrapper:active {
+      cursor: grabbing;
+    }
+
+    .matte-grain-texture {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.38;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.85'/%3E%3C/svg%3E");
+    }
+
+    .pack-crimp-top, .pack-crimp-bottom {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 22px;
+      z-index: 6;
+      background: repeating-linear-gradient(
+        90deg,
+        #18181b 0px,
+        #3f3f46 2px,
+        #09090b 4px,
+        #715c2a 6px,
+        #18181b 8px
+      );
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.22), inset 0 -2px 5px rgba(0,0,0,0.85);
+    }
+    .pack-crimp-top {
+      top: 0;
+      border-radius: 4px 4px 0 0;
+      clip-path: polygon(
+        0% 100%, 0% 18%, 2% 0%, 4% 18%, 6% 0%, 8% 18%, 10% 0%, 12% 18%, 14% 0%, 16% 18%,
+        18% 0%, 20% 18%, 22% 0%, 24% 18%, 26% 0%, 28% 18%, 30% 0%, 32% 18%, 34% 0%, 36% 18%,
+        38% 0%, 40% 18%, 42% 0%, 44% 18%, 46% 0%, 48% 18%, 50% 0%, 52% 18%, 54% 0%, 56% 18%,
+        58% 0%, 60% 18%, 62% 0%, 64% 18%, 66% 0%, 68% 18%, 70% 0%, 72% 18%, 74% 0%, 76% 18%,
+        78% 0%, 80% 18%, 82% 0%, 84% 18%, 86% 0%, 88% 18%, 90% 0%, 92% 18%, 94% 0%, 96% 18%,
+        98% 0%, 100% 18%, 100% 100%
+      );
+    }
+    .pack-crimp-bottom {
+      bottom: 0;
+      border-radius: 0 0 4px 4px;
+      clip-path: polygon(
+        0% 0%, 100% 0%, 100% 82%, 98% 100%, 96% 82%, 94% 100%, 92% 82%, 90% 100%, 88% 82%, 86% 100%,
+        84% 82%, 82% 100%, 80% 82%, 78% 100%, 76% 82%, 74% 100%, 72% 82%, 70% 100%, 68% 82%, 66% 100%,
+        64% 82%, 62% 100%, 60% 82%, 58% 100%, 56% 82%, 54% 100%, 52% 82%, 50% 100%, 48% 82%, 46% 100%,
+        44% 82%, 42% 100%, 40% 82%, 38% 100%, 36% 82%, 34% 100%, 32% 82%, 30% 100%, 28% 82%, 26% 100%,
+        24% 82%, 22% 100%, 20% 82%, 18% 100%, 16% 82%, 14% 100%, 12% 82%, 10% 100%, 8% 82%, 6% 100%,
+        4% 82%, 2% 100%, 0% 82%
+      );
+    }
+
+    .pack-top-cap {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 58px;
+      z-index: 16;
+      transform-origin: right bottom;
+      transform:
+        translateX(var(--tear-tx, 0px))
+        translateY(var(--tear-ty, 0px))
+        rotateZ(var(--tear-rot, 0deg))
+        skewX(var(--tear-skew, 0deg))
+        scaleY(var(--tear-stretch, 1));
+      transition: transform 0.08s linear;
+      will-change: transform, opacity;
+    }
+
+    .pack-top-cap.snapping-back {
+      transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .pack-top-cap.ripped {
+      transition: transform 0.72s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.55s ease 0.15s;
+      transform: translate(185px, -145px) rotateZ(48deg) rotateX(35deg) scale(0.82);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .pack-body {
+      position: absolute;
+      top: 52px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      border-radius: 0 0 6px 6px;
+      overflow: hidden;
+      transform-origin: center bottom;
+      transform: skewX(var(--body-skew, 0deg)) scaleY(var(--body-stretch, 1));
+      transition: transform 0.12s ease-out, box-shadow 0.3s ease;
+      box-shadow:
+        0 28px 60px -10px rgba(0, 0, 0, 0.94),
+        0 0 0 1px rgba(255, 255, 255, 0.12),
+        inset 0 1px 1px rgba(255, 255, 255, 0.18);
+    }
+
+    .tear-seam-glow {
+      position: absolute;
+      top: 46px;
+      left: -4px;
+      right: -4px;
+      height: 18px;
+      z-index: 14;
+      pointer-events: none;
+      opacity: var(--seam-opacity, 0);
+      background: linear-gradient(
+        90deg,
+        rgba(255, 251, 235, 1) 0%,
+        rgba(253, 224, 71, 0.98) var(--seam-pct, 0%),
+        rgba(245, 158, 11, 0.4) calc(var(--seam-pct, 0%) + 8%),
+        transparent calc(var(--seam-pct, 0%) + 14%)
+      );
+      filter: blur(4px) drop-shadow(0 0 14px #fbbf24) drop-shadow(0 0 26px #f59e0b);
+      mix-blend-mode: screen;
+    }
+
+    .jagged-torn-edge {
+      position: absolute;
+      top: 47px;
+      left: 0;
+      right: 0;
+      height: 14px;
+      z-index: 15;
+      pointer-events: none;
+      opacity: var(--seam-opacity, 0);
+    }
+
+    .pack-cap-surface {
+      position: absolute;
+      top: 20px;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      overflow: hidden;
+      border-bottom: 1px dashed rgba(251, 191, 36, 0.45);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+
+    .pack-theme-standard .pack-body,
+    .pack-theme-standard .pack-cap-surface {
+      background:
+        radial-gradient(circle at 50% 35%, rgba(56, 189, 248, 0.12) 0%, transparent 62%),
+        linear-gradient(145deg, #16181c 0%, #0c0d10 52%, #14171c 100%);
+    }
+    .pack-theme-nebula .pack-body,
+    .pack-theme-nebula .pack-cap-surface {
+      background:
+        radial-gradient(circle at 50% 35%, rgba(192, 132, 252, 0.16) 0%, transparent 62%),
+        linear-gradient(145deg, #191421 0%, #0b090f 52%, #171320 100%);
+    }
+    .pack-theme-prism .pack-body,
+    .pack-theme-prism .pack-cap-surface {
+      background:
+        radial-gradient(circle at 50% 35%, rgba(251, 191, 36, 0.18) 0%, rgba(168, 85, 247, 0.1) 45%, transparent 72%),
+        linear-gradient(145deg, #1b1917 0%, #09090b 50%, #1c1915 100%);
+    }
+
+    .foil-sheen {
+      position: absolute;
+      inset: -40%;
+      background: linear-gradient(
+        115deg,
+        transparent 24%,
+        rgba(255, 255, 255, 0.04) 38%,
+        rgba(253, 224, 71, 0.14) 47%,
+        rgba(255, 255, 255, 0.18) 50%,
+        rgba(125, 211, 252, 0.12) 53%,
+        rgba(255, 255, 255, 0.04) 62%,
+        transparent 76%
+      );
+      transform: translateX(var(--sheen-x, 0%)) translateY(var(--sheen-y, 0%)) rotate(14deg);
+      mix-blend-mode: screen;
+      pointer-events: none;
+      transition: transform 0.08s linear;
+    }
+
+    /* 摇包透视光晕 (R/SR/UR/SEC) */
+    .peek-aura {
+      position: absolute;
+      inset: -16px;
+      border-radius: 20px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+      filter: blur(20px);
+      z-index: -1;
+    }
+    .peek-aura.active-R {
+      opacity: 0.7;
+      background: radial-gradient(circle, rgba(226, 232, 240, 0.65), transparent 70%);
+    }
+    .peek-aura.active-SR {
+      opacity: 0.85;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.82), transparent 70%);
+    }
+    .peek-aura.active-UR {
+      opacity: 0.95;
+      background: radial-gradient(circle, rgba(251, 191, 36, 0.92), transparent 70%);
+    }
+    .peek-aura.active-SEC {
+      opacity: 1;
+      background: conic-gradient(from 0deg, #ff0080, #ff8c00, #ffd700, #00ff88, #00cfff, #a855f7, #ff0080);
+      animation: spinAura 2.4s linear infinite;
+    }
+
+    @keyframes spinAura {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes packShake {
+      0%, 100% { transform: rotateZ(0deg) scale(1.03); }
+      15% { transform: rotateZ(-6deg) translateX(-8px) scale(1.05); }
+      30% { transform: rotateZ(6deg) translateX(8px) scale(1.05); }
+      45% { transform: rotateZ(-5deg) translateY(-6px) scale(1.06); }
+      60% { transform: rotateZ(5deg) translateY(4px) scale(1.05); }
+      75% { transform: rotateZ(-3deg) scale(1.04); }
+    }
+    .is-shaking {
+      animation: packShake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    .tear-track {
+      position: relative;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      color: rgba(253, 230, 138, 0.92);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+    }
+
+    .tear-progress-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      height: 3px;
+      width: 0%;
+      background: linear-gradient(90deg, #fbbf24, #fef08a, #ffffff);
+      box-shadow: 0 0 12px #fbbf24;
+    }
+
+    /* ==================== 3D 扇形弹出卡片、全息彩虹与烫金文字 ==================== */
+    .tcg-card-slot {
+      perspective: 1300px;
+      transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.45s ease;
+    }
+
+    @keyframes fanCardPopIn {
+      0% {
+        opacity: 0;
+        transform: translateY(150px) scale(0.35) rotateZ(0deg);
+      }
+      65% {
+        opacity: 1;
+        transform: translateY(-18px) scale(1.03) rotateZ(var(--target-rot, 0deg));
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(var(--target-y, 0px)) scale(var(--target-scale, 1)) rotateZ(var(--target-rot, 0deg));
+      }
+    }
+
+    .fan-pop-animate {
+      animation: fanCardPopIn 0.72s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    }
+
+    .tcg-card {
+      position: relative;
+      width: 208px;
+      height: 296px;
+      border-radius: 15px;
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
+    }
+
+    .tcg-card.is-tilting {
+      transition: transform 0.08s ease-out;
+    }
+
+    .tcg-card.is-flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 15px;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      overflow: hidden;
+      box-shadow: 0 22px 46px rgba(0, 0, 0, 0.85);
+    }
+
+    .card-back {
+      background: linear-gradient(145deg, #0b0d0c 0%, #151918 50%, #080a09 100%);
+      border: 2px solid rgba(251, 191, 36, 0.42);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-back-pattern {
+      position: absolute;
+      inset: 8px;
+      border-radius: 10px;
+      border: 1px solid rgba(251, 191, 36, 0.22);
+      background-image: radial-gradient(rgba(251, 191, 36, 0.14) 1px, transparent 1px);
+      background-size: 12px 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card-front {
+      transform: rotateY(180deg);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      background: #14181c;
+    }
+
+    /* R / SR / UR / SEC 边框材质 */
+    .rarity-R .card-front {
+      background: linear-gradient(145deg, #cbd5e1 0%, #94a3b8 50%, #cbd5e1 100%);
+    }
+    .rarity-SR .card-front {
+      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 35%, #e879f9 70%, #38bdf8 100%);
+    }
+    .rarity-UR .card-front {
+      background: linear-gradient(135deg, #fef08a 0%, #f59e0b 32%, #fde047 65%, #b45309 100%);
+      box-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+    }
+    .rarity-SEC .card-front {
+      background: linear-gradient(125deg, #ff3b8d, #ffae00, #00e676, #00b0ff, #d500f9, #ff3b8d);
+      background-size: 250% 250%;
+      animation: secretBorderFlow 4s ease infinite;
+      box-shadow: 0 0 38px rgba(236, 72, 153, 0.65), 0 0 20px rgba(251, 191, 36, 0.55);
+    }
+
+    @keyframes secretBorderFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .gold-foil-text {
+      background: linear-gradient(
+        120deg,
+        #b45309 0%,
+        #f59e0b 22%,
+        #fef08a 45%,
+        #ffffff 50%,
+        #fde047 55%,
+        #d97706 78%,
+        #92400e 100%
+      );
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55));
+      animation: goldShimmer 4.5s linear infinite;
+    }
+
+    @keyframes goldShimmer {
+      to { background-position: 200% center; }
+    }
+
+    .card-holo-overlay {
+      position: absolute;
+      inset: 0;
+      border-radius: 15px;
+      pointer-events: none;
+      opacity: 0.34;
+      mix-blend-mode: color-dodge;
+      transition: opacity 0.25s ease;
+      background-image:
+        radial-gradient(
+          circle at var(--mx, 50%) var(--my, 50%),
+          rgba(255, 255, 255, 0.85) 0%,
+          rgba(125, 211, 252, 0.45) 24%,
+          rgba(244, 114, 182, 0.45) 48%,
+          rgba(250, 204, 21, 0.4) 70%,
+          transparent 92%
+        ),
+        linear-gradient(
+          115deg,
+          transparent 15%,
+          rgba(255, 0, 128, 0.2) 30%,
+          rgba(255, 215, 0, 0.22) 45%,
+          rgba(0, 255, 170, 0.2) 60%,
+          rgba(56, 189, 248, 0.22) 75%,
+          transparent 90%
+        );
+    }
+
+    .rarity-SR .card-holo-overlay { opacity: 0.62; }
+    .rarity-UR .card-holo-overlay { opacity: 0.78; }
+    .rarity-SEC .card-holo-overlay {
+      opacity: 0.95;
+      background-image:
+        radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,0.95) 0%, transparent 55%),
+        repeating-linear-gradient(
+          45deg,
+          rgba(255,0,128,0.3) 0px,
+          rgba(255,204,0,0.3) 8px,
+          rgba(0,255,170,0.3) 16px,
+          rgba(0,170,255,0.3) 24px,
+          rgba(180,0,255,0.3) 32px
+        );
+    }
+
+    .tcg-card:hover .card-holo-overlay {
+      opacity: 0.96;
+    }
+
+    .card-glare {
+      position: absolute;
+      inset: 0;
+      border-radius: 15px;
+      pointer-events: none;
+      background: radial-gradient(
+        circle at var(--mx, 50%) var(--my, 50%),
+        rgba(255, 255, 255, 0.48) 0%,
+        rgba(255, 255, 255, 0.08) 35%,
+        transparent 65%
+      );
+      mix-blend-mode: overlay;
+    }
+
+    .fan-card-focused {
+      z-index: 40 !important;
+    }
+
+    .glass-dock {
+      background: rgba(10, 14, 13, 0.86);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.8);
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.28); }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-9px); }
+    }
+    .animate-float {
+      animation: floatSlow 4.2s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 18px rgba(251, 191, 36, 0.35); }
+      50% { box-shadow: 0 0 32px rgba(251, 191, 36, 0.72); }
+    }
+    .btn-gold-glow {
+      animation: pulseGlow 2.8s infinite;
+    }
+  </style>
+</head>
+<body class="selection:bg-amber-500/30">
+
+  <!-- 深邃暗房空间、体积光柱与微尘 -->
+  <div class="studio-bg">
+    <div class="volumetric-beams" id="volumetric-beams"></div>
+    <div class="studio-spotlight"></div>
+    <div class="smoke-layer"></div>
+    <div class="studio-floor"></div>
+  </div>
+  <div id="golden-explosion-flash"></div>
+  <canvas id="dust-canvas"></canvas>
+  <canvas id="fx-canvas"></canvas>
+
+  <!-- 极简顶部导航栏 -->
+  <header class="relative z-40 w-full max-w-6xl mx-auto px-4 pt-5 pb-3 flex items-center justify-between gap-2">
+    <!-- 左侧品牌标识 -->
+    <div class="flex items-center gap-2 cursor-pointer" onclick="switchView('home')">
+      <svg class="w-6 h-6 text-amber-300" viewBox="0 0 32 32" fill="none">
+        <path d="M16 3C16 10.5 21.5 16 29 16C21.5 16 16 21.5 16 29C16 21.5 10.5 16 3 16C10.5 16 16 10.5 16 3Z" fill="url(#logoGrad)"/>
+        <defs>
+          <linearGradient id="logoGrad" x1="3" y1="3" x2="29" y2="29" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#FDE047"/>
+            <stop offset="0.5" stop-color="#38BDF8"/>
+            <stop offset="1" stop-color="#F472B6"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <span class="text-base sm:text-lg font-black tracking-wider text-white">PRISM <span class="text-amber-300/80 font-mono text-xs">// 01</span></span>
+    </div>
+
+    <!-- 中央四页切换标签 -->
+    <nav class="flex items-center gap-1 p-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-md">
+      <button onclick="switchView('home')" id="nav-home" class="nav-btn px-3.5 sm:px-5 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all text-white bg-white/15">
+        首页
+      </button>
+      <button onclick="switchView('shop')" id="nav-shop" class="nav-btn px-3.5 sm:px-5 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all text-zinc-400 hover:text-white">
+        商店
+      </button>
+      <button onclick="switchView('open')" id="nav-open" class="nav-btn px-3.5 sm:px-5 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all text-zinc-400 hover:text-white flex items-center gap-1.5">
+        <span>拆卡室</span>
+        <span id="nav-pack-badge" class="px-1.5 py-0.5 text-[10px] rounded-full bg-amber-400 text-zinc-950 font-black leading-none">3</span>
+      </button>
+      <button onclick="switchView('dex')" id="nav-dex" class="nav-btn px-3.5 sm:px-5 py-1.5 rounded-full text-xs sm:text-sm font-semibold transition-all text-zinc-400 hover:text-white">
+        图鉴
+      </button>
+    </nav>
+
+    <!-- 右侧金币胶囊 & 音效开关 -->
+    <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 border border-amber-500/30 text-xs font-extrabold text-amber-300">
+        <span class="w-3 h-3 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-200 inline-block"></span>
+        <span id="coin-display">500</span>
+      </div>
+
+      <button onclick="toggleMute()" id="sound-toggle-btn" class="p-2 rounded-full bg-white/[0.06] hover:bg-white/[0.14] border border-white/10 text-zinc-200 transition" aria-label="音效开关">
+        <svg id="icon-sound-on" class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+        </svg>
+        <svg id="icon-sound-off" class="w-4 h-4 text-zinc-500 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- 轻提示 Toast -->
+  <div id="toast-container" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 pointer-events-none flex flex-col items-center gap-2"></div>
+
+  <!-- ==================== 主视图容器 ==================== -->
+  <main class="relative z-20 w-full max-w-6xl mx-auto px-4 pb-24 pt-2">
+
+    <!-- 1. 首页 (展示台) -->
+    <section id="view-home" class="view-section view-animate-in min-h-[calc(100vh-110px)] flex flex-col items-center justify-center py-4">
+      <div class="pack-stage flex flex-col items-center">
+        <div id="hero-pack-3d" class="foil-pack-wrapper pack-theme-prism animate-float" onclick="handleHeroAction()">
+          <div class="pack-top-cap">
+            <div class="pack-crimp-top"></div>
+            <div class="pack-cap-surface">
+              <div class="matte-grain-texture"></div>
+              <div class="foil-sheen"></div>
+              <div class="tear-track mt-5">
+                <span>◄ TEAR SEAL</span>
+                <span>01 // ARCHIVE</span>
+              </div>
+            </div>
+          </div>
+          <div class="pack-body p-5 flex flex-col justify-between">
+            <div class="matte-grain-texture"></div>
+            <div class="foil-sheen"></div>
+            <div class="flex items-center justify-between relative z-10">
+              <span class="text-2xl font-black tracking-wider gold-foil-text">PRISM</span>
+              <span class="px-2 py-0.5 rounded-full border border-amber-400/50 bg-amber-500/10 text-[9px] font-bold text-amber-200 leading-tight">
+                SERIES 01<br/>5 CARDS
+              </span>
+            </div>
+            <div class="relative z-10 w-36 h-36 mx-auto my-auto flex items-center justify-center">
+              <div class="absolute inset-0 rounded-full border border-amber-300/15 bg-white/[0.02]"></div>
+              <div id="hero-mascot-svg" class="w-32 h-32"></div>
+            </div>
+            <div class="text-center space-y-0.5 pb-4 relative z-10">
+              <div class="text-[10px] font-bold tracking-[0.22em] text-amber-100/90">OPTICAL FOIL COLLECTION</div>
+              <div class="text-[8px] tracking-[0.26em] text-zinc-400">MATTE BLACK EDITION</div>
+            </div>
+            <div class="pack-crimp-bottom"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 极简收集进度 & 流光主按钮 -->
+      <div class="mt-8 flex flex-col items-center gap-4">
+        <div class="flex items-center gap-4 px-5 py-2 rounded-full bg-white/[0.04] border border-white/10 text-xs">
+          <span class="text-zinc-400">已收录</span>
+          <span class="font-mono font-black text-white text-sm"><span id="home-dex-count">00</span> / 12</span>
+          <span class="w-[1px] h-3 bg-white/15"></span>
+          <span class="text-zinc-400">持有卡包</span>
+          <span class="font-mono font-black text-amber-300 text-sm" id="home-pack-count">3</span>
+        </div>
+
+        <button onclick="handleHeroAction()" id="hero-cta-btn" class="px-9 py-3.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-zinc-950 font-black text-sm tracking-wider transition transform hover:scale-105 active:scale-95 btn-gold-glow flex items-center gap-2">
+          <span id="hero-cta-text">进入拆卡室</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. 商店 (补给站) -->
+    <section id="view-shop" class="view-section hidden py-6 space-y-8">
+      <div class="flex items-center justify-between border-b border-white/10 pb-4">
+        <h2 class="text-xl sm:text-2xl font-black tracking-wide text-white">卡包补给</h2>
+        <button onclick="addSupplyCoins()" class="px-4 py-1.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-bold transition active:scale-95">
+          补充补给 (+1000)
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="shop-grid"></div>
+    </section>
+
+    <!-- 3. 拆卡室 (核心物理交互与光影爆发) -->
+    <section id="view-open" class="view-section hidden min-h-[calc(100vh-120px)] flex flex-col items-center justify-between py-2">
+      <!-- 顶部卡包切换胶囊 & 稀有度出货提示 -->
+      <div class="w-full flex flex-col items-center gap-2.5 z-30">
+        <div id="pack-selector-bar" class="flex flex-wrap items-center justify-center gap-2"></div>
+
+        <div id="rare-banner" class="hidden px-5 py-1.5 rounded-full bg-black/80 border border-amber-400/50 backdrop-blur-md text-center shadow-[0_0_25px_rgba(251,191,36,0.35)]">
+          <span id="rare-banner-title" class="text-xs font-black tracking-wider gold-foil-text">SEC · 永恒圣遗物</span>
+        </div>
+      </div>
+
+      <!-- 中央 3D 舞台 -->
+      <div class="relative w-full flex-1 flex flex-col items-center justify-center my-3 min-h-[400px]">
+        <!-- 阶段 A：哑光黑待撕卡包 -->
+        <div id="stage-unopened" class="pack-stage flex flex-col items-center">
+          <div id="active-pack-3d" class="foil-pack-wrapper pack-theme-standard">
+            <div id="pack-peek-aura" class="peek-aura"></div>
+            <div id="tear-seam-glow" class="tear-seam-glow"></div>
+
+            <!-- 动态锯齿毛边 SVG -->
+            <svg id="jagged-torn-edge" class="jagged-torn-edge" viewBox="0 0 248 14" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="tornGoldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#fef9c3"/>
+                  <stop offset="50%" stop-color="#fbbf24"/>
+                  <stop offset="100%" stop-color="#d97706"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,7 L8,3 L15,10 L23,4 L31,11 L40,2 L48,9 L57,4 L65,11 L74,3 L82,10 L91,4 L100,11 L109,3 L118,9 L127,2 L136,10 L145,4 L154,11 L163,3 L172,9 L181,4 L190,11 L199,3 L208,10 L217,4 L226,11 L235,3 L244,9 L248,6 L248,14 L0,14 Z" fill="#121316" stroke="url(#tornGoldGrad)" stroke-width="1.3"/>
+            </svg>
+
+            <!-- 可横向拖拽撕开的顶部封口 -->
+            <div id="active-pack-cap" class="pack-top-cap">
+              <div class="pack-crimp-top"></div>
+              <div class="pack-cap-surface">
+                <div class="matte-grain-texture"></div>
+                <div class="foil-sheen"></div>
+                <div class="tear-track mt-5" id="tear-zone">
+                  <span class="text-amber-300">◄ TEAR SEAL</span>
+                  <span class="text-amber-100/75">划开封口 ►</span>
+                  <div id="tear-progress" class="tear-progress-bar"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 哑光黑卡包主体 -->
+            <div class="pack-body p-5 flex flex-col justify-between" id="active-pack-body">
+              <div class="matte-grain-texture"></div>
+              <div class="foil-sheen"></div>
+              <div class="flex items-center justify-between relative z-10">
+                <span id="pack-label-name" class="text-2xl font-black tracking-wider gold-foil-text">PRISM</span>
+                <span id="pack-label-badge" class="px-2 py-0.5 rounded-full border border-amber-400/50 bg-amber-500/10 text-[9px] font-bold text-amber-200 leading-tight">
+                  SERIES 01<br/>5 CARDS
+                </span>
+              </div>
+
+              <div class="relative z-10 w-36 h-36 mx-auto my-auto flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border border-amber-300/15 bg-white/[0.02]"></div>
+                <div id="active-pack-mascot" class="w-32 h-32"></div>
+              </div>
+
+              <div class="text-center space-y-0.5 pb-4 relative z-10">
+                <div class="text-[10px] font-bold tracking-[0.22em] text-amber-100/90">OPTICAL FOIL COLLECTION</div>
+                <div class="text-[8px] tracking-[0.26em] text-zinc-400">MATTE BLACK EDITION</div>
+              </div>
+              <div class="pack-crimp-bottom"></div>
+            </div>
+          </div>
+
+          <span class="mt-4 text-[11px] tracking-widest text-zinc-400">向右拖动封口划开</span>
+        </div>
+
+        <!-- 阶段 B：五张闪卡扇形弹出阵列 -->
+        <div id="stage-cards" class="hidden w-full flex flex-col items-center">
+          <div id="cards-fan-container" class="w-full flex flex-wrap lg:flex-nowrap items-center justify-center gap-4 sm:gap-5 px-2 py-4"></div>
+          <span class="mt-2 text-[11px] tracking-widest text-zinc-400">点击翻转 · 再次点击聚焦检视</span>
+        </div>
+      </div>
+
+      <!-- 底部极简悬浮工具条 -->
+      <div class="glass-dock rounded-full px-5 py-2.5 flex items-center justify-center gap-3 z-30">
+        <div id="dock-actions-unopened" class="flex items-center gap-2.5">
+          <button onclick="shakePackPeek()" class="px-4 py-2 rounded-full bg-white/[0.08] hover:bg-white/[0.16] border border-white/15 text-xs font-bold text-white transition active:scale-95">
+            摇包
+          </button>
+          <button onclick="animateSlowTearOpen()" class="px-5 py-2 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-xs font-black text-zinc-950 transition active:scale-95 shadow-[0_0_15px_rgba(251,191,36,0.35)]">
+            撕开封口
+          </button>
+        </div>
+
+        <div id="dock-actions-opened" class="hidden flex items-center gap-2.5">
+          <button onclick="flipAllCards()" id="btn-flip-all" class="px-5 py-2 rounded-full bg-white/[0.1] hover:bg-white/[0.18] border border-white/15 text-xs font-bold text-white transition active:scale-95">
+            全部翻开
+          </button>
+          <button onclick="resetForNextPack()" id="btn-next-pack" class="hidden px-6 py-2 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-xs font-black text-zinc-950 transition active:scale-95 shadow-[0_0_15px_rgba(251,191,36,0.35)]">
+            再拆一包
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. 图鉴 (12张奇幻档案册) -->
+    <section id="view-dex" class="view-section hidden py-6 space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+        <div class="flex items-center gap-3">
+          <h2 class="text-xl sm:text-2xl font-black text-white">奇幻档案</h2>
+          <span id="dex-progress-pill" class="px-3 py-1 rounded-full bg-white/10 text-xs font-mono font-bold text-amber-300">00 / 12</span>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- 极简筛选胶囊 -->
+          <div class="flex items-center gap-1 p-1 rounded-full bg-black/60 border border-white/10 text-xs">
+            <button onclick="filterDex('all')" data-filter="all" class="dex-filter-btn px-3 py-1 rounded-full bg-white/15 text-white font-bold">全部</button>
+            <button onclick="filterDex('R')" data-filter="R" class="dex-filter-btn px-3 py-1 rounded-full text-zinc-400 hover:text-white font-bold">R</button>
+            <button onclick="filterDex('SR')" data-filter="SR" class="dex-filter-btn px-3 py-1 rounded-full text-zinc-400 hover:text-white font-bold">SR</button>
+            <button onclick="filterDex('UR')" data-filter="UR" class="dex-filter-btn px-3 py-1 rounded-full text-zinc-400 hover:text-white font-bold">UR</button>
+            <button onclick="filterDex('SEC')" data-filter="SEC" class="dex-filter-btn px-3 py-1 rounded-full text-zinc-400 hover:text-white font-bold">SEC</button>
+          </div>
+
+          <button onclick="dismantleAllDuplicates()" class="px-3.5 py-1.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-bold transition active:scale-95">
+            分解重复卡
+          </button>
+        </div>
+      </div>
+
+      <!-- 收集进度条 -->
+      <div class="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+        <div id="dex-progress-bar" class="h-full bg-gradient-to-r from-emerald-400 via-sky-400 to-amber-300 transition-all duration-500" style="width: 0%"></div>
+      </div>
+
+      <div id="dex-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6 justify-items-center pt-2"></div>
+    </section>
+
+  </main>
+
+  <!-- 独立卡片全屏 3D 检视模态框 -->
+  <div id="inspect-modal" class="fixed inset-0 z-50 hidden bg-black/85 backdrop-blur-md flex items-center justify-center p-4" onclick="closeInspectModal(event)">
+    <div class="max-w-sm w-full rounded-3xl bg-zinc-900/95 border border-white/15 p-6 flex flex-col items-center text-center relative shadow-2xl" onclick="event.stopPropagation()">
+      <button onclick="closeInspectModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-zinc-300 text-sm">✕</button>
+
+      <div id="inspect-card-mount" class="my-4 transform scale-110"></div>
+
+      <div class="mt-4 space-y-1.5">
+        <div class="flex items-center justify-center gap-2">
+          <span id="inspect-rarity-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/40">SEC</span>
+          <span id="inspect-serial" class="text-xs font-mono text-zinc-400">NO.012/012</span>
+        </div>
+        <h3 id="inspect-name" class="text-xl font-black text-white">逆闪幻彩 · Astral</h3>
+        <p id="inspect-lore" class="text-xs text-zinc-400 leading-relaxed pt-1"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. Web Audio API 实时合成音效引擎
+       ========================================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        try {
+          if (!this.ctx) {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return false;
+            this.ctx = new AudioCtx();
+          }
+          if (this.ctx.state === 'suspended') {
+            this.ctx.resume().catch(() => {});
+          }
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      playClick() {
+        if (this.muted || !this.init()) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(720, now);
+          osc.frequency.exponentialRampToValueAtTime(340, now + 0.055);
+          gain.gain.setValueAtTime(0.11, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+          osc.connect(gain).connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.06);
+        } catch (e) {}
+      }
+
+      playCoin() {
+        if (this.muted || !this.init()) return;
+        try {
+          const now = this.ctx.currentTime;
+          [987.77, 1318.51].forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.065);
+            gain.gain.setValueAtTime(0.14, now + idx * 0.065);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.065 + 0.22);
+            osc.connect(gain).connect(this.ctx.destination);
+            osc.start(now + idx * 0.065);
+            osc.stop(now + idx * 0.065 + 0.23);
+          });
+        } catch (e) {}
+      }
+
+      playFoilShake() {
+        if (this.muted || !this.init()) return;
+        try {
+          const duration = 0.45;
+          const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            const env = Math.sin((i / bufferSize) * Math.PI) * (Math.sin(i * 0.015) * 0.5 + 0.5);
+            data[i] = (Math.random() * 2 - 1) * env;
+          }
+
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.value = 3400;
+          filter.Q.value = 2.2;
+
+          const gain = this.ctx.createGain();
+          gain.gain.value = 0.34;
+
+          noise.connect(filter).connect(gain).connect(this.ctx.destination);
+          noise.start();
+        } catch (e) {}
+      }
+
+      playTearTick() {
+        if (this.muted || !this.init()) return;
+        try {
+          const now = this.ctx.currentTime;
+          const duration = 0.045;
+          const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+          }
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'highpass';
+          filter.frequency.value = 2600;
+          const gain = this.ctx.createGain();
+          gain.gain.value = 0.14;
+          noise.connect(filter).connect(gain).connect(this.ctx.destination);
+          noise.start(now);
+        } catch (e) {}
+      }
+
+      playRipOpen() {
+        if (this.muted || !this.init()) return;
+        try {
+          const now = this.ctx.currentTime;
+          const duration = 0.48;
+          const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+          const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+          const data = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            const flutter = 0.65 + 0.35 * Math.sin(i * 0.08);
+            data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 0.55) * flutter;
+          }
+
+          const noise = this.ctx.createBufferSource();
+          noise.buffer = buffer;
+
+          const filter = this.ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(1600, now);
+          filter.frequency.exponentialRampToValueAtTime(5200, now + duration);
+          filter.Q.value = 1.6;
+
+          const gain = this.ctx.createGain();
+          gain.gain.setValueAtTime(0.46, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+
+          noise.connect(filter).connect(gain).connect(this.ctx.destination);
+          noise.start(now);
+
+          const sub = this.ctx.createOscillator();
+          const subGain = this.ctx.createGain();
+          sub.frequency.setValueAtTime(140, now);
+          sub.frequency.exponentialRampToValueAtTime(38, now + 0.36);
+          subGain.gain.setValueAtTime(0.32, now);
+          subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.36);
+          sub.connect(subGain).connect(this.ctx.destination);
+          sub.start(now);
+          sub.stop(now + 0.38);
+
+          this._playArpeggio([440, 554.37, 659.25, 880, 1108.73], 0.045, 0.72, 'sine', 0.12);
+        } catch (e) {}
+      }
+
+      playCardFlip(rarity) {
+        if (this.muted || !this.init()) return;
+        try {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(280, now);
+          osc.frequency.exponentialRampToValueAtTime(540, now + 0.085);
+          gain.gain.setValueAtTime(0.13, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.095);
+          osc.connect(gain).connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.1);
+
+          if (rarity === 'SR') {
+            this._playArpeggio([523.25, 659.25, 783.99], 0.05, 0.35, 'triangle', 0.12);
+          } else if (rarity === 'UR') {
+            this._playArpeggio([523.25, 659.25, 783.99, 1046.50], 0.06, 0.55, 'sine', 0.16);
+          } else if (rarity === 'SEC') {
+            this._playArpeggio([523.25, 659.25, 783.99, 987.77, 1174.66, 1567.98], 0.055, 0.9, 'sine', 0.18);
+          }
+        } catch (e) {}
+      }
+
+      _playArpeggio(notes, step, decay, type, vol) {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        notes.forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, now + i * step);
+          gain.gain.setValueAtTime(vol, now + i * step);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * step + decay);
+          osc.connect(gain).connect(this.ctx.destination);
+          osc.start(now + i * step);
+          osc.stop(now + i * step + decay + 0.02);
+        });
+      }
+    }
+
+    const sfx = new SoundEngine();
+
+    /* ==========================================================================
+       2. 12 张奇幻元素档案数据库 (R / SR / UR / SEC)
+       ========================================================================== */
+    const CARD_DATABASE = [
+      { id: 1, serial: 'NO.001/012', name: 'Cloudlet', cn: '浮空云朵', tag: 'AERO', rarity: 'R', lore: '凝聚高层晨雾的轻盈云精灵，折射柔和的珍珠光泽。', shape: 'cloud', bg: 'linear-gradient(135deg, #1e293b, #334155)' },
+      { id: 2, serial: 'NO.002/012', name: 'Comet', cn: '拖尾彗星', tag: 'ORBIT', rarity: 'R', lore: '划过暗房天幕的冰晶彗星，尾部拖曳着细碎星尘。', shape: 'comet', bg: 'linear-gradient(135deg, #172554, #1e3a8a)' },
+      { id: 3, serial: 'NO.003/012', name: 'Lunaris', cn: '新月月相', tag: 'LUNAR', rarity: 'R', lore: '静谧悬垂的银白月牙，随光照角度泛起微弱潮汐蓝。', shape: 'moon', bg: 'linear-gradient(135deg, #1e1b4b, #312e81)' },
+      { id: 4, serial: 'NO.004/012', name: 'Sprout', cn: '星露初芽', tag: 'FLORA', rarity: 'R', lore: '吸纳微弱聚光生长的晶体嫩芽，叶片边缘闪烁银边。', shape: 'sprout', bg: 'linear-gradient(135deg, #142923, #1f3d34)' },
+
+      { id: 5, serial: 'NO.005/012', name: 'Orbit', cn: '光环星球', tag: 'COSMOS', rarity: 'SR', lore: '环绕双重金色星环的深蓝行星，全息光栅展现深邃星海。', shape: 'planet', bg: 'radial-gradient(circle at 50% 45%, #1d4ed8 0%, #0f172a 85%)' },
+      { id: 6, serial: 'NO.006/012', name: 'Nebula', cn: '幻彩星云', tag: 'NEBULA', rarity: 'SR', lore: '高能粒子交织的紫粉星云环，倾斜时流淌霓虹光谱。', shape: 'torus', bg: 'radial-gradient(circle at 50% 45%, #7e22ce 0%, #1e1b4b 85%)' },
+      { id: 7, serial: 'NO.007/012', name: 'Aurora', cn: '极光棱镜', tag: 'AURORA', rarity: 'SR', lore: '磁暴凝结的翡翠多面体，能将白光色散为七彩光幕。', shape: 'crystal', bg: 'radial-gradient(circle at 50% 45%, #047857 0%, #064e3b 85%)' },
+      { id: 8, serial: 'NO.008/012', name: 'Eclipse', cn: '引力黑洞', tag: 'VOID', rarity: 'SR', lore: '吸积盘燃烧着炽热紫焰的微型奇点，散发神秘引力波。', shape: 'blackhole', bg: 'radial-gradient(circle at 50% 45%, #581c87 0%, #09090b 85%)' },
+
+      { id: 9, serial: 'NO.009/012', name: 'Stellar', cn: '煌金星星', tag: 'STAR', rarity: 'UR', lore: '纯金箔压印工艺打造的五芒星灵，迸发耀眼放射状日芒。', shape: 'star', bg: 'radial-gradient(circle at 50% 45%, #d97706 0%, #451a03 88%)' },
+      { id: 10, serial: 'NO.010/012', name: 'Prismix', cn: '四芒棱镜', tag: 'PRISM', rarity: 'UR', lore: 'Series 01 标志性四芒星核心，拥有珍珠母贝般的虹彩折射。', shape: 'plus', bg: 'radial-gradient(circle at 50% 45%, #4f46e5 0%, #1e1b4b 88%)' },
+      { id: 11, serial: 'NO.011/012', name: 'Corona', cn: '炽阳日冕', tag: 'SOLAR', rarity: 'UR', lore: '烈焰金冕环绕的恒星心脏，烫金浮雕记录着高光时刻。', shape: 'sun', bg: 'radial-gradient(circle at 50% 45%, #b45309 0%, #1c1917 88%)' },
+
+      { id: 12, serial: 'NO.012/012', name: 'Astral', cn: '逆闪幻彩', tag: 'RELIC', rarity: 'SEC', lore: '全系列唯一秘藏异画！满版彩虹碎钻光栅与双环八面体圣遗物。', shape: 'relic', bg: 'conic-gradient(from 45deg at 50% 50%, #ff0080, #ff8c00, #ffd700, #00e676, #00b0ff, #d500f9, #ff0080)' }
+    ];
+
+    const PACK_TYPES = [
+      {
+        id: 'standard',
+        name: '标准光学包',
+        badge: 'R / SR+\nSERIES 01',
+        price: 100,
+        themeClass: 'pack-theme-standard',
+        mascotShape: 'planet',
+        tagText: '内含 5 张闪卡'
+      },
+      {
+        id: 'nebula',
+        name: '星云异画包',
+        badge: 'SR+ 保底\nEDITION',
+        price: 280,
+        themeClass: 'pack-theme-nebula',
+        mascotShape: 'torus',
+        tagText: 'SR+ 保底 · 高概率 UR'
+      },
+      {
+        id: 'prism',
+        name: '秘藏全闪包',
+        badge: 'UR / SEC\nOMNI',
+        price: 680,
+        themeClass: 'pack-theme-prism',
+        mascotShape: 'plus',
+        tagText: 'UR / SEC 高概率'
+      }
+    ];
+
+    function renderMascotSVG(shape, uid = 'm') {
+      const eyeGroup = `
+        <g class="mascot-eyes">
+          <ellipse cx="43" cy="51" rx="4.2" ry="5" fill="#0f172a"/>
+          <ellipse cx="57" cy="51" rx="4.2" ry="5" fill="#0f172a"/>
+          <circle class="mascot-pupil" cx="44.2" cy="49.5" r="1.7" fill="#ffffff"/>
+          <circle class="mascot-pupil" cx="58.2" cy="49.5" r="1.7" fill="#ffffff"/>
+          <path d="M47 56.5 Q50 59.5 53 56.5" stroke="#0f172a" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        </g>
+      `;
+
+      const happyEyeGroup = `
+        <g class="mascot-eyes">
+          <path d="M39 50 Q43 45 47 50" stroke="#0f172a" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+          <path d="M53 50 Q57 45 61 50" stroke="#0f172a" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+          <path d="M46 55 Q50 61 54 55 Z" fill="#0f172a"/>
+        </g>
+      `;
+
+      switch (shape) {
+        case 'plus':
+          return `
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-[0_10px_18px_rgba(0,0,0,0.45)]">
+              <defs>
+                <radialGradient id="grad-plus-${uid}" cx="35%" cy="30%" r="70%">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="45%" stop-color="#bae6fd"/>
+                  <stop offset="78%" stop-color="#f5d0fe"/>
+                  <stop offset="100%" stop-color="#818cf8"/>
+                </radialGradient>
+              </defs>
+              <path d="M50 10 C59 10 61 36 64 39 C67 42 90 41 90 50 C90 59 67 58 64 61 C61 64 59 90 50 90 C41 90 39 64 36 61 C33 58 10 59 10 50 C10 41 33 42 36 39 C39 36 41 10 50 10 Z" fill="url(#grad-plus-${uid})" stroke="rgba(255,255,255,0.7)" stroke-width="1.5"/>
+              ${eyeGroup}
+            </svg>`;
+        case 'planet':
+          return `
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-[0_10px_18px_rgba(0,0,0,0.5)]">
+              <defs>
+                <radialGradient id="grad-planet-${uid}" cx="35%" cy="30%" r="70%">
+                  <stop offset="0%" stop-color="#93c5fd"/>
+                  <stop offset="55%" stop-color="#2563eb"/>
+                  <stop offset="100%" stop-color="#1e1b4b"/>
+                </radialGradient>
+              </defs>
+              <ellipse cx="50" cy="52" rx="38" ry="11" transform="rotate(-14 50 52)" fill="none" stroke="#fde68a" stroke-width="5" opacity="0.85"/>
+              <circle cx="50" cy="50" r="24" fill="url(#grad-planet-${uid})"/>
+              <path d="M14 56 A38 11 -14 0 0 86 48" fill="none" stroke="#fef08a" stroke-width="5" stroke-linecap="round"/>
+              ${eyeGroup}
+            </svg>`;
+        case 'torus':
+          return `
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-[0_10px_18px_rgba(0,0,0,0.5)]">
+              <defs>
+                <linearGradient id="grad-torus-${uid}" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#f472b6"/>
+                  <stop offset="50%" stop-color="#a855f7"/>
+                  <stop offset="100%" stop-color="#38bdf8"/>
+                </linearGradient>
+              </defs>
+              <circle cx="50" cy="50" r="30" fill="url(#grad-torus-${uid})" stroke="rgba(255,255,255,0.5)" stroke-width="2"/>
+              <circle cx="50" cy="50" r="13" fill="#ffffff"/>
+              <g transform="scale(0.68) translate(23.5, 23.5)">
+                ${eyeGroup}
+              </g>
+            </svg>`;
+        case 'star':
+          return `
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-[0_10px_18px_rgba(0,0,0,0.5)]">
+              <defs>
+                <radialGradient id="grad-star-${uid}" cx="40%" cy="30%" r="70%">
+                  <stop offset="0%" stop-color="#fef9c3"/>
+                  <stop offset="55%" stop-color="#facc15"/>
+                  <stop offset="100%" stop-color="#ca8a04"/>
+                </radialGradient>
+              </defs>
+              <path d="M50 12 L61 36 L87 39 L68 57 L73 83 L50 70 L27 83 L32 57 L13 39 L39 36 Z" stroke="url(#grad-star-${uid})" stroke-width="8" stroke-linejoin="round" fill="url(#grad-star-${uid})"/>
+              ${eyeGroup}
+            </svg>`;
+        case 'relic':
+          return `
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-[0_12px_20px_rgba(0,0,0,0.55)]">
+              <defs>
+                <linearGradient id="grad-relic-${uid}" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#7dd3fc"/>
+                  <stop offset="50%" stop-color="#0284c7"/>
+                  <stop offset="100%" stop-color="#1e3a8a"/>
+                </linearGradient>
+              </defs>
+              <polygon points="50,10 82,48 50,88 18,48" fill="url(#grad-relic-${uid})" stroke="#bae6fd" stroke-width="1.5"/>
+              <polygon points="50,10 82,48 50,54 18,48" fill="rgba(255,255,255,0.22)"/>
+              <ellipse cx="50" cy="50" rx="38" ry="15" transform="rotate(-24 50 50)" fill="none" stroke="#fef9c3" stroke-width="5.5" opacity="0.92"/>
+              <ellipse cx="50" cy="50" rx="34" ry="13" transform="rotate(24 50 50)" fill="none" stroke="#e0f2fe" stroke-width="4.5" opacity="0.85"/>
+              ${happyEyeGroup}
+            </svg>`;
+        case 'sprout':
+          return `
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+              <circle cx="50" cy="56" r="24" fill="#6ee7b7"/>
+              <path d="M50 32 C50 16 68 14 70 26 C62 32 50 32 50 32 Z" fill="#34d399"/>
+              <path d="M50 32 C50 18 32 16 30 28 C38 34 50 32 50 32 Z" fill="#10b981"/>
+              <g transform="translate(0, 6)">${eyeGroup}</g>
+            </svg>`;
+        case 'comet':
+          return `
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+              <path d="M62 24 C78 16 88 22 84 36 C80 48 64 56 54 62 Z" fill="rgba(125,211,252,0.45)"/>
+              <circle cx="44" cy="56" r="22" fill="#38bdf8" stroke="#bae6fd" stroke-width="2"/>
+              <g transform="translate(-6, 6)">${eyeGroup}</g>
+            </svg>`;
+        case 'moon':
+          return `
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+              <path d="M60 18 A32 32 0 1 0 82 70 A24 24 0 1 1 60 18 Z" fill="#e2e8f0" stroke="#ffffff" stroke-width="1.5"/>
+              <g transform="translate(-6, 4)">${eyeGroup}</g>
+            </svg>`;
+        case 'cloud':
+          return `
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+              <path d="M28 68 H72 A15 15 0 0 0 72 38 A20 20 0 0 0 34 34 A16 16 0 0 0 28 68 Z" fill="#f1f5f9"/>
+              <g transform="translate(0, 3)">${eyeGroup}</g>
+            </svg>`;
+        case 'crystal':
+          return `
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-lg">
+              <polygon points="50,12 76,34 76,68 50,88 24,68 24,34" fill="#10b981" stroke="#a7f3d0" stroke-width="2"/>
+              <polygon points="50,12 76,34 50,48 24,34" fill="#6ee7b7" opacity="0.6"/>
+              ${eyeGroup}
+            </svg>`;
+        case 'blackhole':
+          return `
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-lg">
+              <ellipse cx="50" cy="50" rx="40" ry="12" transform="rotate(-18 50 50)" fill="none" stroke="#c084fc" stroke-width="5"/>
+              <circle cx="50" cy="50" r="22" fill="#09090b" stroke="#a855f7" stroke-width="2.5"/>
+              <g class="mascot-eyes">
+                <circle class="mascot-pupil" cx="43" cy="50" r="3" fill="#e9d5ff"/>
+                <circle class="mascot-pupil" cx="57" cy="50" r="3" fill="#e9d5ff"/>
+              </g>
+            </svg>`;
+        default:
+          return `
+            <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-lg">
+              <circle cx="50" cy="50" r="24" fill="#fbbf24" stroke="#fef08a" stroke-width="2.5"/>
+              <circle cx="50" cy="50" r="33" fill="none" stroke="#fde047" stroke-width="3" stroke-dasharray="6 5"/>
+              ${eyeGroup}
+            </svg>`;
+      }
+    }
+
+    /* ==========================================================================
+       3. 全局状态与 localStorage 持久化 (初始赠送 3 包标准包 + 500 金币)
+       ========================================================================== */
+    const STORAGE_KEY = 'prism_01_tcg_minimal_v1';
+
+    let gameState = {
+      coins: 500,
+      packs: {
+        standard: 3,
+        nebula: 0,
+        prism: 0
+      },
+      selectedPackType: 'standard',
+      collection: {}
+    };
+
+    let sessionState = {
+      isOpened: false,
+      currentCards: [],
+      focusedIndex: -1,
+      peekedRarity: null
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            gameState = {
+              ...gameState,
+              ...parsed,
+              packs: { ...gameState.packs, ...(parsed.packs || {}) },
+              collection: { ...(parsed.collection || {}) }
+            };
+          }
+        }
+      } catch (e) {}
+      pickAvailablePackType();
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
+      } catch (e) {}
+    }
+
+    function getTotalPacks() {
+      return (gameState.packs.standard || 0) + (gameState.packs.nebula || 0) + (gameState.packs.prism || 0);
+    }
+
+    function pickAvailablePackType() {
+      if ((gameState.packs[gameState.selectedPackType] || 0) > 0) return;
+      for (const p of PACK_TYPES) {
+        if ((gameState.packs[p.id] || 0) > 0) {
+          gameState.selectedPackType = p.id;
+          return;
+        }
+      }
+    }
+
+    /* ==========================================================================
+       4. 视图切换与顶部状态更新
+       ========================================================================== */
+    function switchView(viewId) {
+      sfx.playClick();
+      document.querySelectorAll('.view-section').forEach(el => {
+        el.classList.add('hidden');
+        el.classList.remove('view-animate-in');
+      });
+
+      const targetView = document.getElementById(`view-${viewId}`);
+      if (targetView) {
+        targetView.classList.remove('hidden');
+        void targetView.offsetWidth;
+        targetView.classList.add('view-animate-in');
+      }
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-white/15', 'text-white');
+        btn.classList.add('text-zinc-400');
+      });
+      const activeBtn = document.getElementById(`nav-${viewId}`);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-white/15', 'text-white');
+        activeBtn.classList.remove('text-zinc-400');
+      }
+
+      if (viewId === 'shop') renderShop();
+      if (viewId === 'dex') renderDex();
+      if (viewId === 'open') renderOpenView();
+      updateAllCounters();
+    }
+
+    function handleHeroAction() {
+      if (getTotalPacks() > 0) {
+        switchView('open');
+      } else {
+        switchView('shop');
+      }
+    }
+
+    function animateCoinValue(targetValue) {
+      const el = document.getElementById('coin-display');
+      if (!el) return;
+      const startValue = parseInt(el.textContent, 10) || 0;
+      if (startValue === targetValue) return;
+      const startTime = performance.now();
+      const duration = 380;
+
+      function step(now) {
+        const p = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(startValue + (targetValue - startValue) * eased);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = targetValue;
+      }
+      requestAnimationFrame(step);
+    }
+
+    function updateAllCounters() {
+      const unlockedCount = Object.keys(gameState.collection).filter(k => gameState.collection[k] > 0).length;
+      const totalPacks = getTotalPacks();
+      const paddedDex = String(unlockedCount).padStart(2, '0');
+
+      animateCoinValue(gameState.coins);
+
+      const setText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+
+      setText('nav-pack-badge', totalPacks);
+      setText('home-dex-count', paddedDex);
+      setText('home-pack-count', totalPacks);
+      setText('hero-cta-text', totalPacks > 0 ? '进入拆卡室' : '前往商店');
+    }
+
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      const colorClass = type === 'gold'
+        ? 'border-amber-400/60 bg-amber-950/90 text-amber-200'
+        : 'border-white/20 bg-zinc-900/95 text-white';
+
+      toast.className = `px-4 py-1.5 rounded-full border backdrop-blur-md text-xs font-bold shadow-xl transition-all duration-300 transform translate-y-2 opacity-0 ${colorClass}`;
+      toast.textContent = msg;
+      container.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('-translate-y-2', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 2000);
+    }
+
+    function toggleMute() {
+      sfx.muted = !sfx.muted;
+      const onIcon = document.getElementById('icon-sound-on');
+      const offIcon = document.getElementById('icon-sound-off');
+      if (onIcon) onIcon.classList.toggle('hidden', sfx.muted);
+      if (offIcon) offIcon.classList.toggle('hidden', !sfx.muted);
+      if (!sfx.muted) sfx.playClick();
+    }
+
+    function addSupplyCoins() {
+      gameState.coins += 1000;
+      saveState();
+      updateAllCounters();
+      sfx.playCoin();
+      spawnBurstParticles(window.innerWidth - 90, 40, '#fbbf24', 25);
+      showToast('+1000 金币', 'gold');
+    }
+
+    /* ==========================================================================
+       5. 商店系统渲染与购买交互
+       ========================================================================== */
+    function renderShop() {
+      const grid = document.getElementById('shop-grid');
+      if (!grid) return;
+      grid.innerHTML = PACK_TYPES.map(pack => {
+        const owned = gameState.packs[pack.id] || 0;
+        return `
+          <div class="shop-card-item rounded-3xl bg-white/[0.03] border border-white/10 p-6 flex flex-col items-center text-center hover:border-amber-400/35 hover:bg-white/[0.05] transition-all duration-300 group">
+            <div class="w-full flex items-center justify-between text-xs mb-3">
+              <span class="px-2.5 py-0.5 rounded-full bg-white/10 text-zinc-300 font-mono font-bold">×${owned}</span>
+              <span class="px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 font-extrabold">${pack.price} 金币</span>
+            </div>
+
+            <div class="shop-pack-preview foil-pack-wrapper ${pack.themeClass} transform scale-[0.72] -my-9 pointer-events-none transition-transform duration-300 group-hover:scale-[0.76]">
+              <div class="pack-top-cap">
+                <div class="pack-crimp-top"></div>
+                <div class="pack-cap-surface">
+                  <div class="matte-grain-texture"></div>
+                  <div class="foil-sheen"></div>
+                </div>
+              </div>
+              <div class="pack-body p-4 flex flex-col justify-between">
+                <div class="matte-grain-texture"></div>
+                <div class="foil-sheen"></div>
+                <div class="flex items-center justify-between relative z-10">
+                  <span class="text-lg font-black gold-foil-text">PRISM</span>
+                  <span class="px-1.5 py-0.5 rounded border border-amber-400/40 text-[8px] text-amber-200/90 whitespace-pre-line text-left">${pack.badge}</span>
+                </div>
+                <div class="w-28 h-28 mx-auto my-auto relative z-10">${renderMascotSVG(pack.mascotShape, 'shop-' + pack.id)}</div>
+                <div class="text-[9px] tracking-widest text-amber-100/75 pb-3 relative z-10">5 FOIL CARDS</div>
+                <div class="pack-crimp-bottom"></div>
+              </div>
+            </div>
+
+            <h3 class="text-base font-black text-white mt-2">${pack.name}</h3>
+            <span class="text-[11px] text-amber-300/80 mt-1">${pack.tagText}</span>
+
+            <div class="w-full grid grid-cols-2 gap-2 mt-5">
+              <button onclick="buyPack('${pack.id}', false, event)" class="py-2 rounded-full bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition active:scale-95">
+                购买
+              </button>
+              <button onclick="buyPack('${pack.id}', true, event)" class="py-2 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-xs font-black text-zinc-950 transition active:scale-95">
+                购买并开启
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function buyPack(packId, openImmediately, e) {
+      const pack = PACK_TYPES.find(p => p.id === packId);
+      if (!pack) return;
+
+      if (gameState.coins < pack.price) {
+        sfx.playClick();
+        showToast('金币不足 · 可点击右上补充补给', 'gold');
+        return;
+      }
+
+      gameState.coins -= pack.price;
+      gameState.packs[packId] = (gameState.packs[packId] || 0) + 1;
+      gameState.selectedPackType = packId;
+      saveState();
+      updateAllCounters();
+      sfx.playCoin();
+
+      if (e && e.clientX) {
+        spawnBurstParticles(e.clientX, e.clientY, '#fbbf24', 28);
+      }
+
+      if (openImmediately) {
+        resetForNextPack(false);
+        switchView('open');
+      } else {
+        renderShop();
+        showToast(`已获得 ${pack.name}`);
+      }
+    }
+
+    /* ==========================================================================
+       6. 拆卡室核心物理交互 (抽卡概率、摇包透视、弹性撕裂、金色光爆、扇形弹出)
+       ========================================================================== */
+    function ensurePackAvailable() {
+      const count = gameState.packs[gameState.selectedPackType] || 0;
+      if (count > 0) return true;
+
+      if (getTotalPacks() > 0) {
+        pickAvailablePackType();
+        renderOpenView();
+        return true;
+      }
+
+      sfx.playClick();
+      showToast('卡包已空 · 前往商店补给', 'gold');
+      return false;
+    }
+
+    function drawSingleCardByRates(packId, forceHighRare = false) {
+      let weights = { R: 60, SR: 28, UR: 9, SEC: 3 };
+      if (packId === 'nebula') {
+        weights = { R: 20, SR: 48, UR: 24, SEC: 8 };
+      } else if (packId === 'prism') {
+        weights = { R: 0, SR: 15, UR: 58, SEC: 27 };
+      }
+
+      if (forceHighRare && weights.R > 0) {
+        weights = { R: 0, SR: 65, UR: 27, SEC: 8 };
+      }
+
+      const total = weights.R + weights.SR + weights.UR + weights.SEC;
+      let roll = Math.random() * total;
+      let chosenRarity = 'R';
+
+      if (roll < weights.R) chosenRarity = 'R';
+      else if (roll < weights.R + weights.SR) chosenRarity = 'SR';
+      else if (roll < weights.R + weights.SR + weights.UR) chosenRarity = 'UR';
+      else chosenRarity = 'SEC';
+
+      const pool = CARD_DATABASE.filter(c => c.rarity === chosenRarity);
+      return pool[Math.floor(Math.random() * pool.length)] || CARD_DATABASE[0];
+    }
+
+    function generateFiveCards() {
+      const packId = gameState.selectedPackType;
+      const cards = [];
+
+      for (let i = 0; i < 5; i++) {
+        // 第5张保底 SR+
+        const card = drawSingleCardByRates(packId, i === 4);
+        const isNew = !(gameState.collection[card.id] > 0) && !cards.some(item => item.card.id === card.id);
+        cards.push({
+          card,
+          isFlipped: false,
+          isNew
+        });
+      }
+      return cards;
+    }
+
+    function shakePackPeek() {
+      if (sessionState.isOpened) return;
+      if (!ensurePackAvailable()) return;
+
+      const packEl = document.getElementById('active-pack-3d');
+      const auraEl = document.getElementById('pack-peek-aura');
+      if (!packEl || !auraEl) return;
+
+      if (!sessionState.currentCards.length) {
+        sessionState.currentCards = generateFiveCards();
+      }
+
+      const rank = { R: 1, SR: 2, UR: 3, SEC: 4 };
+      let best = 'R';
+      sessionState.currentCards.forEach(item => {
+        if (rank[item.card.rarity] > rank[best]) best = item.card.rarity;
+      });
+      sessionState.peekedRarity = best;
+
+      sfx.playFoilShake();
+      packEl.classList.remove('is-shaking');
+      void packEl.offsetWidth;
+      packEl.classList.add('is-shaking');
+
+      auraEl.className = `peek-aura active-${best}`;
+      const labelMap = {
+        R: '微光感应 · R',
+        SR: '紫光感应 · SR',
+        UR: '金光感应 · UR',
+        SEC: '七彩感应 · SEC'
+      };
+      showToast(labelMap[best] || '微光感应', best === 'UR' || best === 'SEC' ? 'gold' : 'info');
+    }
+
+    function renderOpenView() {
+      renderPackSelectorBar();
+      const packConfig = PACK_TYPES.find(p => p.id === gameState.selectedPackType) || PACK_TYPES[0];
+
+      const activePackEl = document.getElementById('active-pack-3d');
+      if (activePackEl) {
+        activePackEl.className = `foil-pack-wrapper ${packConfig.themeClass}`;
+      }
+      const labelName = document.getElementById('pack-label-name');
+      if (labelName) labelName.textContent = packConfig.id.toUpperCase();
+
+      const labelBadge = document.getElementById('pack-label-badge');
+      if (labelBadge) labelBadge.innerHTML = packConfig.badge.replace('\n', '<br/>');
+
+      const mascotEl = document.getElementById('active-pack-mascot');
+      if (mascotEl) mascotEl.innerHTML = renderMascotSVG(packConfig.mascotShape, 'active-pack');
+    }
+
+    function renderPackSelectorBar() {
+      const bar = document.getElementById('pack-selector-bar');
+      if (!bar) return;
+      bar.innerHTML = PACK_TYPES.map(p => {
+        const count = gameState.packs[p.id] || 0;
+        const isSelected = gameState.selectedPackType === p.id;
+        return `
+          <button onclick="selectPackToOpen('${p.id}')" class="px-3.5 py-1.5 rounded-full text-xs font-bold border transition flex items-center gap-1.5 ${
+            isSelected
+              ? 'bg-amber-400/20 border-amber-400 text-amber-200 shadow-[0_0_15px_rgba(251,191,36,0.25)]'
+              : 'bg-black/60 border-white/10 text-zinc-400 hover:text-white'
+          }">
+            <span>${p.name}</span>
+            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none ${count > 0 ? 'bg-white/20 text-white' : 'bg-white/5 text-zinc-500'}">${count}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function selectPackToOpen(packId) {
+      if (sessionState.isOpened) {
+        resetForNextPack(false);
+      }
+      sfx.playClick();
+      gameState.selectedPackType = packId;
+      sessionState.peekedRarity = null;
+      sessionState.currentCards = [];
+      const auraEl = document.getElementById('pack-peek-aura');
+      if (auraEl) auraEl.className = 'peek-aura';
+      renderOpenView();
+    }
+
+    function triggerGoldenBeamExplosion() {
+      const flash = document.getElementById('golden-explosion-flash');
+      const beams = document.getElementById('volumetric-beams');
+      if (flash) flash.style.opacity = '1';
+      if (beams) beams.classList.add('gold-surge');
+
+      document.body.classList.remove('is-screen-shaking');
+      void document.body.offsetWidth;
+      document.body.classList.add('is-screen-shaking');
+
+      spawnBurstParticles(window.innerWidth / 2, window.innerHeight * 0.36, '#fbbf24', 70);
+      spawnBurstParticles(window.innerWidth / 2, window.innerHeight * 0.36, '#fef9c3', 40);
+
+      setTimeout(() => {
+        if (flash) flash.style.opacity = '0';
+      }, 420);
+
+      setTimeout(() => {
+        if (beams) beams.classList.remove('gold-surge');
+      }, 2200);
+    }
+
+    let isAutoTearing = false;
+    function animateSlowTearOpen() {
+      if (sessionState.isOpened || isAutoTearing) return;
+      if (!ensurePackAvailable()) return;
+
+      isAutoTearing = true;
+      const startTime = performance.now();
+      const duration = 660;
+
+      function step(now) {
+        const progress = Math.min(1, (now - startTime) / duration);
+        const eased = progress < 0.7
+          ? (progress / 0.7) * 0.65
+          : 0.65 + ((progress - 0.7) / 0.3) * 0.35;
+
+        applyTearDeformation(eased * 100);
+
+        if (Math.random() < 0.35) {
+          sfx.playTearTick();
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          isAutoTearing = false;
+          ripOpenPack();
+        }
+      }
+      requestAnimationFrame(step);
+    }
+
+    function applyTearDeformation(pct) {
+      const ratio = Math.max(0, Math.min(1, pct / 100));
+      const cap = document.getElementById('active-pack-cap');
+      const body = document.getElementById('active-pack-body');
+      const seamGlow = document.getElementById('tear-seam-glow');
+      const jaggedEdge = document.getElementById('jagged-torn-edge');
+      const progressBar = document.getElementById('tear-progress');
+
+      if (progressBar) progressBar.style.width = `${pct}%`;
+
+      if (cap) {
+        const tx = ratio * 26;
+        const ty = -ratio * 18;
+        const rot = ratio * 11;
+        const skew = -ratio * 14;
+        const stretch = 1 + ratio * 0.14;
+
+        cap.style.setProperty('--tear-tx', `${tx}px`);
+        cap.style.setProperty('--tear-ty', `${ty}px`);
+        cap.style.setProperty('--tear-rot', `${rot}deg`);
+        cap.style.setProperty('--tear-skew', `${skew}deg`);
+        cap.style.setProperty('--tear-stretch', `${stretch}`);
+      }
+
+      if (body) {
+        body.style.setProperty('--body-skew', `${-ratio * 2.4}deg`);
+        body.style.setProperty('--body-stretch', `${1 + ratio * 0.025}`);
+      }
+
+      if (seamGlow) {
+        seamGlow.style.setProperty('--seam-opacity', `${Math.min(1, ratio * 1.35)}`);
+        seamGlow.style.setProperty('--seam-pct', `${pct}%`);
+      }
+
+      if (jaggedEdge) {
+        jaggedEdge.style.setProperty('--seam-opacity', `${ratio > 0.04 ? 1 : 0}`);
+      }
+    }
+
+    function clearTearDeformation(snapBack = false) {
+      const cap = document.getElementById('active-pack-cap');
+      const body = document.getElementById('active-pack-body');
+      const seamGlow = document.getElementById('tear-seam-glow');
+      const jaggedEdge = document.getElementById('jagged-torn-edge');
+      const progressBar = document.getElementById('tear-progress');
+
+      if (cap) {
+        if (snapBack) {
+          cap.classList.add('snapping-back');
+          setTimeout(() => cap.classList.remove('snapping-back'), 460);
+        }
+        cap.style.setProperty('--tear-tx', '0px');
+        cap.style.setProperty('--tear-ty', '0px');
+        cap.style.setProperty('--tear-rot', '0deg');
+        cap.style.setProperty('--tear-skew', '0deg');
+        cap.style.setProperty('--tear-stretch', '1');
+      }
+
+      if (progressBar) progressBar.style.width = '0%';
+      if (body) {
+        body.style.setProperty('--body-skew', '0deg');
+        body.style.setProperty('--body-stretch', '1');
+      }
+      if (seamGlow) seamGlow.style.setProperty('--seam-opacity', '0');
+      if (jaggedEdge) jaggedEdge.style.setProperty('--seam-opacity', '0');
+    }
+
+    function ripOpenPack() {
+      if (sessionState.isOpened) return;
+      if (!ensurePackAvailable()) return;
+
+      gameState.packs[gameState.selectedPackType] = Math.max(0, (gameState.packs[gameState.selectedPackType] || 0) - 1);
+
+      if (!sessionState.currentCards.length) {
+        sessionState.currentCards = generateFiveCards();
+      }
+
+      sessionState.currentCards.forEach(item => {
+        gameState.collection[item.card.id] = (gameState.collection[item.card.id] || 0) + 1;
+      });
+
+      saveState();
+      updateAllCounters();
+      renderPackSelectorBar();
+
+      sfx.playRipOpen();
+      triggerGoldenBeamExplosion();
+
+      const cap = document.getElementById('active-pack-cap');
+      if (cap) {
+        cap.classList.remove('snapping-back');
+        cap.classList.add('ripped');
+      }
+      sessionState.isOpened = true;
+
+      setTimeout(() => {
+        clearTearDeformation(false);
+        const stageUnopened = document.getElementById('stage-unopened');
+        const stageCards = document.getElementById('stage-cards');
+        const dockUnopened = document.getElementById('dock-actions-unopened');
+        const dockOpened = document.getElementById('dock-actions-opened');
+        const btnFlipAll = document.getElementById('btn-flip-all');
+        const btnNextPack = document.getElementById('btn-next-pack');
+
+        if (stageUnopened) stageUnopened.classList.add('hidden');
+        if (stageCards) stageCards.classList.remove('hidden');
+        if (dockUnopened) dockUnopened.classList.add('hidden');
+        if (dockOpened) dockOpened.classList.remove('hidden');
+        if (btnFlipAll) btnFlipAll.classList.remove('hidden');
+        if (btnNextPack) btnNextPack.classList.add('hidden');
+
+        renderFiveCardsFan(true);
+      }, 520);
+    }
+
+    function renderFiveCardsFan(animatePop = false) {
+      const container = document.getElementById('cards-fan-container');
+      if (!container) return;
+      const rotations = [-8, -4, 0, 4, 8];
+      const yOffsets = [16, 5, -12, 5, 16];
+
+      container.innerHTML = sessionState.currentCards.map((item, idx) => {
+        const isFocused = sessionState.focusedIndex === idx;
+        const rot = isFocused ? 0 : rotations[idx];
+        const y = isFocused ? -20 : yOffsets[idx];
+        const scale = isFocused ? 1.18 : (idx === 2 && sessionState.focusedIndex === -1 ? 1.08 : 0.96);
+        const popClass = animatePop ? 'fan-pop-animate' : '';
+        const delayStyle = animatePop ? `animation-delay: ${idx * 75}ms;` : '';
+
+        return `
+          <div class="tcg-card-slot ${isFocused ? 'fan-card-focused' : ''} ${popClass}"
+               style="--target-y: ${y}px; --target-rot: ${rot}deg; --target-scale: ${scale}; transform: translateY(${y}px) rotate(${rot}deg) scale(${scale}); ${delayStyle}"
+               onclick="handleCardClick(${idx})">
+            ${buildCardHTML(item.card, item.isFlipped, item.isNew, `fan-${idx}`)}
+          </div>
+        `;
+      }).join('');
+
+      updateOpenedDockButtons();
+    }
+
+    function updateOpenedDockButtons() {
+      const allFlipped = sessionState.currentCards.length > 0 && sessionState.currentCards.every(c => c.isFlipped);
+      const btnFlipAll = document.getElementById('btn-flip-all');
+      const btnNextPack = document.getElementById('btn-next-pack');
+      if (btnFlipAll && btnNextPack) {
+        if (allFlipped) {
+          btnFlipAll.classList.add('hidden');
+          btnNextPack.classList.remove('hidden');
+        } else {
+          btnFlipAll.classList.remove('hidden');
+          btnNextPack.classList.add('hidden');
+        }
+      }
+    }
+
+    function buildCardHTML(card, isFlipped, isNew, uid) {
+      const isSEC = card.rarity === 'SEC';
+      const isUR = card.rarity === 'UR';
+      const useGoldTitle = isSEC || isUR;
+
+      return `
+        <div class="tcg-card rarity-${card.rarity} ${isFlipped ? 'is-flipped' : ''}" data-uid="${uid}">
+          <div class="card-face card-back">
+            <div class="matte-grain-texture"></div>
+            <div class="card-back-pattern">
+              <svg class="w-11 h-11 text-amber-400/85 mb-2" viewBox="0 0 32 32" fill="none">
+                <path d="M16 3C16 10.5 21.5 16 29 16C21.5 16 16 21.5 16 29C16 21.5 10.5 16 3 16C10.5 16 16 10.5 16 3Z" fill="currentColor"/>
+              </svg>
+              <span class="text-xs font-black tracking-[0.24em] gold-foil-text">PRISM</span>
+              <span class="text-[8px] font-mono tracking-[0.26em] text-amber-200/60 mt-1">01 // ARCHIVE</span>
+            </div>
+          </div>
+
+          <div class="card-face card-front">
+            <div class="relative flex-1 rounded-t-lg overflow-hidden p-2.5 flex flex-col justify-between" style="background: ${card.bg};">
+              ${(isUR || isSEC) ? `
+                <div class="absolute inset-0 opacity-35 pointer-events-none" style="background: repeating-conic-gradient(from 0deg, rgba(255,255,255,0.45) 0deg 10deg, transparent 10deg 20deg);"></div>
+              ` : ''}
+
+              <div class="relative z-10 flex items-center justify-between">
+                ${isNew ? `<span class="px-1.5 py-0.5 rounded bg-rose-500 text-[8px] font-black text-white tracking-wider shadow">NEW</span>` : `<span></span>`}
+                <span class="px-2 py-0.5 rounded-full bg-black/65 border border-white/15 text-[8px] font-black tracking-wider ${
+                  isSEC ? 'text-amber-300' : isUR ? 'text-yellow-300' : isSR(card.rarity) ? 'text-sky-300' : 'text-zinc-300'
+                }">${card.rarity}</span>
+              </div>
+
+              <div class="relative z-10 w-24 h-24 mx-auto my-auto">
+                ${renderMascotSVG(card.shape, uid)}
+              </div>
+            </div>
+
+            <div class="${isSEC ? 'bg-zinc-950/95 text-white' : 'bg-white/95 text-zinc-900'} rounded-b-lg p-2.5 flex flex-col justify-between h-[92px] relative z-10">
+              <div class="flex items-center justify-between gap-1">
+                <span class="text-base font-black tracking-tight truncate ${useGoldTitle ? 'gold-foil-text' : ''}">${card.name}</span>
+                <span class="px-2 py-0.5 rounded-full text-[8px] font-extrabold border ${
+                  isSEC ? 'border-amber-400/40 bg-amber-500/10 text-amber-200' : 'border-zinc-300 bg-zinc-100 text-zinc-700'
+                }">${card.tag}</span>
+              </div>
+
+              <div class="text-[11px] ${isSEC ? 'text-zinc-300' : 'text-zinc-600'} font-bold truncate">
+                ${card.cn}
+              </div>
+
+              <div class="flex items-center justify-between pt-1 border-t ${isSEC ? 'border-white/10' : 'border-zinc-200'} text-[8px] font-mono font-extrabold">
+                <span class="${isSEC ? 'text-amber-200/80' : 'text-zinc-500'}">${card.serial}</span>
+                <span class="${
+                  card.rarity === 'SEC' ? 'gold-foil-text' :
+                  card.rarity === 'UR' ? 'text-amber-600' :
+                  card.rarity === 'SR' ? 'text-indigo-600' : 'text-zinc-500'
+                }">✦ ${card.rarity}</span>
+              </div>
+            </div>
+
+            <div class="card-holo-overlay"></div>
+            <div class="card-glare"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function isSR(r) {
+      return r === 'SR';
+    }
+
+    function handleCardClick(index) {
+      const item = sessionState.currentCards[index];
+      if (!item) return;
+
+      if (!item.isFlipped) {
+        item.isFlipped = true;
+        sfx.playCardFlip(item.card.rarity);
+        triggerRareCelebration(item.card);
+        renderFiveCardsFan(false);
+      } else {
+        sfx.playClick();
+        sessionState.focusedIndex = sessionState.focusedIndex === index ? -1 : index;
+        renderFiveCardsFan(false);
+      }
+    }
+
+    function flipAllCards() {
+      let delay = 0;
+      let bestCard = null;
+      sessionState.currentCards.forEach((item) => {
+        if (!item.isFlipped) {
+          setTimeout(() => {
+            item.isFlipped = true;
+            sfx.playCardFlip(item.card.rarity);
+            if (!bestCard || item.card.rarity === 'SEC' || (item.card.rarity === 'UR' && bestCard.rarity !== 'SEC')) {
+              bestCard = item.card;
+              triggerRareCelebration(bestCard);
+            }
+            renderFiveCardsFan(false);
+          }, delay);
+          delay += 130;
+        }
+      });
+    }
+
+    function triggerRareCelebration(card) {
+      if (card.rarity === 'SEC' || card.rarity === 'UR') {
+        const banner = document.getElementById('rare-banner');
+        const titleEl = document.getElementById('rare-banner-title');
+        if (banner) banner.classList.remove('hidden');
+        if (titleEl) titleEl.textContent = `${card.rarity} · ${card.cn} (${card.name})`;
+
+        const color = card.rarity === 'SEC' ? '#f472b6' : '#fbbf24';
+        spawnBurstParticles(window.innerWidth / 2, window.innerHeight * 0.45, color, card.rarity === 'SEC' ? 75 : 40);
+      }
+    }
+
+    function resetForNextPack(playSound = true) {
+      if (playSound) sfx.playClick();
+      sessionState = {
+        isOpened: false,
+        currentCards: [],
+        focusedIndex: -1,
+        peekedRarity: null
+      };
+      const banner = document.getElementById('rare-banner');
+      const cap = document.getElementById('active-pack-cap');
+      const aura = document.getElementById('pack-peek-aura');
+      const stageCards = document.getElementById('stage-cards');
+      const stageUnopened = document.getElementById('stage-unopened');
+      const dockOpened = document.getElementById('dock-actions-opened');
+      const dockUnopened = document.getElementById('dock-actions-unopened');
+
+      if (banner) banner.classList.add('hidden');
+      if (cap) cap.classList.remove('ripped');
+      clearTearDeformation(false);
+      if (aura) aura.className = 'peek-aura';
+
+      if (stageCards) stageCards.classList.add('hidden');
+      if (stageUnopened) stageUnopened.classList.remove('hidden');
+      if (dockOpened) dockOpened.classList.add('hidden');
+      if (dockUnopened) dockUnopened.classList.remove('hidden');
+
+      pickAvailablePackType();
+      renderOpenView();
+    }
+
+    /* ==========================================================================
+       7. 顶部封口横向拖拽撕开手势
+       ========================================================================== */
+    function initTearGesture() {
+      const tearZone = document.getElementById('active-pack-cap');
+      if (!tearZone) return;
+
+      let isDragging = false;
+      let startX = 0;
+      let lastTickPct = 0;
+
+      const onStart = (clientX) => {
+        if (sessionState.isOpened || isAutoTearing) return;
+        if (!ensurePackAvailable()) return;
+        isDragging = true;
+        startX = clientX;
+        lastTickPct = 0;
+        tearZone.classList.remove('snapping-back');
+      };
+
+      const onMove = (clientX) => {
+        if (!isDragging || sessionState.isOpened) return;
+        const delta = Math.max(0, clientX - startX);
+        const pct = Math.min(100, (delta / 160) * 100);
+
+        applyTearDeformation(pct);
+
+        if (pct - lastTickPct >= 14) {
+          lastTickPct = pct;
+          sfx.playTearTick();
+        }
+
+        if (pct >= 88) {
+          isDragging = false;
+          applyTearDeformation(100);
+          ripOpenPack();
+        }
+      };
+
+      const onEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        if (!sessionState.isOpened) {
+          clearTearDeformation(true);
+        }
+      };
+
+      tearZone.addEventListener('mousedown', e => {
+        e.stopPropagation();
+        onStart(e.clientX);
+      });
+      window.addEventListener('mousemove', e => onMove(e.clientX));
+      window.addEventListener('mouseup', onEnd);
+
+      tearZone.addEventListener('touchstart', e => {
+        e.stopPropagation();
+        if (e.touches && e.touches.length > 0) {
+          onStart(e.touches[0].clientX);
+        }
+      }, { passive: true });
+      window.addEventListener('touchmove', e => {
+        if (isDragging && e.touches && e.touches.length > 0) {
+          onMove(e.touches[0].clientX);
+        }
+      }, { passive: true });
+      window.addEventListener('touchend', onEnd);
+    }
+
+    /* ==========================================================================
+       8. 图鉴 (12张奇幻档案) 与全屏 3D 检视
+       ========================================================================== */
+    let currentDexFilter = 'all';
+
+    function filterDex(rarity) {
+      sfx.playClick();
+      currentDexFilter = rarity;
+      document.querySelectorAll('.dex-filter-btn').forEach(btn => {
+        if (btn.dataset.filter === rarity) {
+          btn.className = 'dex-filter-btn px-3 py-1 rounded-full bg-white/15 text-white font-bold';
+        } else {
+          btn.className = 'dex-filter-btn px-3 py-1 rounded-full text-zinc-400 hover:text-white font-bold';
+        }
+      });
+      renderDex();
+    }
+
+    function renderDex() {
+      const grid = document.getElementById('dex-grid');
+      if (!grid) return;
+      const unlockedTotal = Object.keys(gameState.collection).filter(k => gameState.collection[k] > 0).length;
+      const pct = Math.round((unlockedTotal / CARD_DATABASE.length) * 100);
+
+      const pill = document.getElementById('dex-progress-pill');
+      const bar = document.getElementById('dex-progress-bar');
+      if (pill) pill.textContent = `${String(unlockedTotal).padStart(2, '0')} / 12`;
+      if (bar) bar.style.width = `${pct}%`;
+
+      const filtered = currentDexFilter === 'all'
+        ? CARD_DATABASE
+        : CARD_DATABASE.filter(c => c.rarity === currentDexFilter);
+
+      grid.innerHTML = filtered.map(card => {
+        const count = gameState.collection[card.id] || 0;
+        const unlocked = count > 0;
+
+        if (!unlocked) {
+          return `
+            <div class="w-[176px] h-[250px] rounded-2xl border border-white/10 bg-white/[0.025] backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center relative overflow-hidden">
+              <div class="w-16 h-16 opacity-15 filter grayscale brightness-50 mb-3">
+                ${renderMascotSVG(card.shape, 'locked-' + card.id)}
+              </div>
+              <div class="text-[10px] font-mono text-zinc-500 tracking-widest">${card.serial}</div>
+              <span class="mt-2 px-2 py-0.5 rounded-full bg-white/5 text-[9px] font-bold text-zinc-500">${card.rarity}</span>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="relative group cursor-pointer" onclick="openInspectModal(${card.id})">
+            <div class="transform scale-[0.84] origin-top -mb-10">
+              ${buildCardHTML(card, true, false, `dex-${card.id}`)}
+            </div>
+            <div class="mt-1 flex items-center justify-between px-2 text-xs">
+              <span class="font-bold text-white">${card.cn}</span>
+              <span class="px-2 py-0.5 rounded-full bg-white/10 text-[10px] font-mono text-amber-300">×${count}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function dismantleAllDuplicates() {
+      const dismantleValue = { R: 20, SR: 50, UR: 150, SEC: 350 };
+      let gained = 0;
+      let countRemoved = 0;
+
+      CARD_DATABASE.forEach(card => {
+        const owned = gameState.collection[card.id] || 0;
+        if (owned > 1) {
+          const extra = owned - 1;
+          gained += extra * dismantleValue[card.rarity];
+          countRemoved += extra;
+          gameState.collection[card.id] = 1;
+        }
+      });
+
+      if (countRemoved === 0) {
+        sfx.playClick();
+        showToast('暂无重复卡片');
+        return;
+      }
+
+      gameState.coins += gained;
+      saveState();
+      updateAllCounters();
+      renderDex();
+      sfx.playCoin();
+      showToast(`已分解 ${countRemoved} 张重复卡 · +${gained} 金币`, 'gold');
+    }
+
+    function openInspectModal(cardId) {
+      const card = CARD_DATABASE.find(c => c.id === cardId);
+      if (!card) return;
+      sfx.playClick();
+
+      const mount = document.getElementById('inspect-card-mount');
+      const badge = document.getElementById('inspect-rarity-badge');
+      const serial = document.getElementById('inspect-serial');
+      const name = document.getElementById('inspect-name');
+      const lore = document.getElementById('inspect-lore');
+      const modal = document.getElementById('inspect-modal');
+
+      if (mount) mount.innerHTML = buildCardHTML(card, true, false, `inspect-${card.id}`);
+      if (badge) badge.textContent = card.rarity;
+      if (serial) serial.textContent = card.serial;
+      if (name) name.textContent = `${card.cn} · ${card.name}`;
+      if (lore) lore.textContent = card.lore;
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeInspectModal(e) {
+      if (!e || e.target.id === 'inspect-modal') {
+        const modal = document.getElementById('inspect-modal');
+        if (modal) modal.classList.add('hidden');
+      }
+    }
+
+    /* ==========================================================================
+       9. 全局 3D 视差倾斜、全息涂层与眼神追踪
+       ========================================================================== */
+    function initOpticalTracking() {
+      const updatePointerEffects = (clientX, clientY) => {
+        const vw = window.innerWidth || 1;
+        const vh = window.innerHeight || 1;
+        const normX = (clientX / vw) * 2 - 1;
+        const normY = (clientY / vh) * 2 - 1;
+
+        const pupilX = normX * 2.4;
+        const pupilY = normY * 2.2;
+        document.querySelectorAll('.mascot-pupil').forEach(pupil => {
+          pupil.style.transform = `translate(${pupilX}px, ${pupilY}px)`;
+        });
+
+        ['hero-pack-3d', 'active-pack-3d'].forEach(id => {
+          const pack = document.getElementById(id);
+          if (!pack || pack.classList.contains('is-shaking')) return;
+          const rect = pack.getBoundingClientRect();
+          if (rect.width === 0) return;
+
+          const cx = rect.left + rect.width / 2;
+          const cy = rect.top + rect.height / 2;
+          const dx = Math.max(-1, Math.min(1, (clientX - cx) / 260));
+          const dy = Math.max(-1, Math.min(1, (clientY - cy) / 260));
+
+          pack.style.transform = `rotateY(${dx * 18}deg) rotateX(${-dy * 15}deg)`;
+          pack.style.setProperty('--sheen-x', `${dx * 45}%`);
+          pack.style.setProperty('--sheen-y', `${dy * 30}%`);
+        });
+
+        // 商店卡包 3D 悬停视差
+        document.querySelectorAll('.shop-card-item').forEach(card => {
+          const rect = card.getBoundingClientRect();
+          const preview = card.querySelector('.shop-pack-preview');
+          if (!preview) return;
+          if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+            const dx = ((clientX - rect.left) / rect.width) * 2 - 1;
+            const dy = ((clientY - rect.top) / rect.height) * 2 - 1;
+            preview.style.transform = `scale(0.76) rotateY(${dx * 16}deg) rotateX(${-dy * 14}deg)`;
+            preview.style.setProperty('--sheen-x', `${dx * 40}%`);
+          } else {
+            preview.style.transform = '';
+          }
+        });
+
+        document.querySelectorAll('.tcg-card.is-flipped').forEach(card => {
+          const rect = card.getBoundingClientRect();
+          if (
+            clientX >= rect.left - 30 && clientX <= rect.right + 30 &&
+            clientY >= rect.top - 30 && clientY <= rect.bottom + 30
+          ) {
+            const px = ((clientX - rect.left) / rect.width) * 100;
+            const py = ((clientY - rect.top) / rect.height) * 100;
+            const rotY = ((px - 50) / 50) * 18;
+            const rotX = -((py - 50) / 50) * 16;
+
+            card.classList.add('is-tilting');
+            card.style.transform = `rotateY(${180 + rotY}deg) rotateX(${rotX}deg)`;
+            card.style.setProperty('--mx', `${px}%`);
+            card.style.setProperty('--my', `${py}%`);
+          } else if (card.classList.contains('is-tilting')) {
+            card.classList.remove('is-tilting');
+            card.style.transform = `rotateY(180deg)`;
+          }
+        });
+      };
+
+      window.addEventListener('mousemove', e => updatePointerEffects(e.clientX, e.clientY));
+      window.addEventListener('touchmove', e => {
+        if (e.touches && e.touches.length > 0) {
+          updatePointerEffects(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true });
+
+      window.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+          closeInspectModal();
+          if (sessionState.focusedIndex !== -1) {
+            sessionState.focusedIndex = -1;
+            renderFiveCardsFan(false);
+          }
+        }
+      });
+    }
+
+    /* ==========================================================================
+       10. 微尘粒子与星尘光爆粒子画布
+       ========================================================================== */
+    let fxParticles = [];
+
+    function spawnBurstParticles(x, y, color, count = 40) {
+      const palette = [color, '#ffffff', '#38bdf8', '#fde047', '#f472b6'];
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2.5 + Math.random() * 7.5;
+        fxParticles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 2,
+          size: 2 + Math.random() * 4,
+          color: palette[Math.floor(Math.random() * palette.length)],
+          alpha: 1,
+          decay: 0.015 + Math.random() * 0.02
+        });
+      }
+    }
+
+    function initCanvases() {
+      const dustCanvas = document.getElementById('dust-canvas');
+      const fxCanvas = document.getElementById('fx-canvas');
+      if (!dustCanvas || !fxCanvas) return;
+
+      const dCtx = dustCanvas.getContext('2d');
+      const fCtx = fxCanvas.getContext('2d');
+
+      const resize = () => {
+        dustCanvas.width = fxCanvas.width = window.innerWidth;
+        dustCanvas.height = fxCanvas.height = window.innerHeight;
+      };
+      resize();
+      window.addEventListener('resize', resize);
+
+      const motes = Array.from({ length: 45 }, () => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        r: 0.6 + Math.random() * 1.6,
+        vy: -0.15 - Math.random() * 0.35,
+        vx: (Math.random() - 0.5) * 0.25,
+        a: 0.15 + Math.random() * 0.45
+      }));
+
+      function loop() {
+        dCtx.clearRect(0, 0, dustCanvas.width, dustCanvas.height);
+        motes.forEach(m => {
+          m.x += m.vx;
+          m.y += m.vy;
+          if (m.y < 0) m.y = dustCanvas.height;
+          if (m.x < 0) m.x = dustCanvas.width;
+          if (m.x > dustCanvas.width) m.x = 0;
+
+          dCtx.beginPath();
+          dCtx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+          dCtx.fillStyle = `rgba(253, 230, 138, ${m.a * 0.75})`;
+          dCtx.fill();
+        });
+
+        fCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+        for (let i = fxParticles.length - 1; i >= 0; i--) {
+          const p = fxParticles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.14;
+          p.alpha -= p.decay;
+
+          if (p.alpha <= 0) {
+            fxParticles.splice(i, 1);
+            continue;
+          }
+          fCtx.globalAlpha = p.alpha;
+          fCtx.fillStyle = p.color;
+          fCtx.beginPath();
+          fCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          fCtx.fill();
+        }
+        fCtx.globalAlpha = 1;
+
+        requestAnimationFrame(loop);
+      }
+      loop();
+    }
+
+    /* ==========================================================================
+       11. 初始化入口
+       ========================================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      const heroMascot = document.getElementById('hero-mascot-svg');
+      if (heroMascot) heroMascot.innerHTML = renderMascotSVG('plus', 'hero');
+      updateAllCounters();
+      renderOpenView();
+      initTearGesture();
+      initOpticalTracking();
+      initCanvases();
+    });
+  </script>
+</body>
+</html>
