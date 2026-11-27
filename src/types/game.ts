@@ -54,19 +54,33 @@ export type LightingMode = 'spotlight' | 'gallery'
 
 export type RarityFilter = 'ALL' | Rarity
 
-export interface CardDef {
+interface CardBase {
   id: string
   seriesId: string
   no: number
   name: string
   rarity: Rarity
+  verse: string
+  flavor: string
+}
+
+/** 节气册页。画心只占中间，题款印在纸上。 */
+export interface LeafCard extends CardBase {
+  face?: 'leaf'
   season: SeasonName
   scene: SolarScene
   phenology: readonly [string, string, string]
   span: string
-  verse: string
-  flavor: string
 }
+
+/** 画心卡。整张图是画面，卡名和题款印在下沿。 */
+export interface PlateCard extends CardBase {
+  face: 'plate'
+  art: string
+  notes: readonly [string, string, string]
+}
+
+export type CardDef = LeafCard | PlateCard
 
 export interface DrawnCard {
   instanceId: string

@@ -80,12 +80,22 @@ export function CardInspect({ card, isNew = false, onClose }: CardInspectProps) 
             {card.rarity} · {RARITY_LABEL[card.rarity]}
           </span>
           <h2>{card.name}</h2>
-          <p className="inspect-span">{card.span}</p>
-          <ol className="inspect-hou">
-            {card.phenology.map((line, index) => (
-              <li key={line}>{['一候', '二候', '三候'][index]} {line}</li>
-            ))}
-          </ol>
+          {card.face === 'plate' ? (
+            <ul className="inspect-hou">
+              {card.notes.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          ) : (
+            <>
+              <p className="inspect-span">{card.span}</p>
+              <ol className="inspect-hou">
+                {card.phenology.map((line, index) => (
+                  <li key={line}>{['一候', '二候', '三候'][index]} {line}</li>
+                ))}
+              </ol>
+            </>
+          )}
           <p className="inspect-verse">{card.verse}</p>
           <p>{card.flavor}</p>
           <p>{formatSerial(card)}</p>

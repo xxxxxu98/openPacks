@@ -1602,18 +1602,22 @@ button.tear-track:active { cursor: grabbing; }
   line-height: 1;
   letter-spacing: 0;
 }
-.rarity-R .card-front.is-leaf .leaf-rank { border-width: 2px; }
-.rarity-SR .card-front.is-leaf .leaf-rank {
+.rarity-R .card-front.is-leaf .leaf-rank,
+.rarity-R .card-front.is-plate .leaf-rank { border-width: 2px; }
+.rarity-SR .card-front.is-leaf .leaf-rank,
+.rarity-SR .card-front.is-plate .leaf-rank {
   background: #146b56;
   color: #f3faf6;
   border-color: #146b56;
 }
-.rarity-SSR .card-front.is-leaf .leaf-rank {
+.rarity-SSR .card-front.is-leaf .leaf-rank,
+.rarity-SSR .card-front.is-plate .leaf-rank {
   background: linear-gradient(160deg, #f6e7bc, #c6a15a 58%, #8d6b2c);
   color: #2a2114;
   border-color: #8d6b2c;
 }
-.rarity-SECRET .card-front.is-leaf .leaf-rank {
+.rarity-SECRET .card-front.is-leaf .leaf-rank,
+.rarity-SECRET .card-front.is-plate .leaf-rank {
   background: #5c3478;
   color: #f7f2fb;
   border-color: #d9c8ee;
@@ -1727,16 +1731,19 @@ button.tear-track:active { cursor: grabbing; }
   letter-spacing: 0.08em;
   line-height: 1.2;
 }
-.rarity-N .card-front.is-leaf .leaf-grade {
+.rarity-N .card-front.is-leaf .leaf-grade,
+.rarity-N .card-front.is-plate .leaf-grade {
   background: transparent;
   color: var(--grade);
   box-shadow: inset 0 0 0 1px var(--grade);
 }
-.rarity-SSR .card-front.is-leaf .leaf-grade {
+.rarity-SSR .card-front.is-leaf .leaf-grade,
+.rarity-SSR .card-front.is-plate .leaf-grade {
   background: linear-gradient(160deg, #f6e7bc, #c6a15a 60%, #8d6b2c);
   color: #2a2114;
 }
-.rarity-SECRET .card-front.is-leaf .leaf-grade {
+.rarity-SECRET .card-front.is-leaf .leaf-grade,
+.rarity-SECRET .card-front.is-plate .leaf-grade {
   background: #5c3478;
   color: #f7f2fb;
   box-shadow: 0 0 0 1.5px #c4b0dc;
@@ -2686,3 +2693,142 @@ button.tear-track:active { cursor: grabbing; }
   52% { transform: translateX(120%); opacity: 0.95; }
   64%, 100% { transform: translateX(120%); opacity: 0; }
 }
+
+.card-front.is-plate {
+  --paper: #f4efe6;
+  --seal: #8e3a38;
+  --grade: #7a7268;
+  --rim: 1.5px;
+  --rim-color: #9a9186;
+  container-type: inline-size;
+  background: #14110e;
+  color: #f6f1e8;
+  font-family: "Noto Serif SC", "Songti SC", "STSong", SimSun, serif;
+}
+.rarity-R .card-front.is-plate {
+  --grade: #1e4f78;
+  --rim: 2.5px;
+  --rim-color: #3d7eae;
+}
+.rarity-SR .card-front.is-plate {
+  --grade: #146b56;
+  --rim: 3.5px;
+  --rim-color: #1f9a78;
+}
+.rarity-SSR .card-front.is-plate {
+  --grade: #8a6424;
+  --rim: 4px;
+  --rim-color: #e0c37a;
+}
+.rarity-SECRET .card-front.is-plate {
+  --grade: #5c3478;
+  --rim: 5px;
+  --rim-color: #c4b0dc;
+}
+.plate-art,
+.plate-missing {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.plate-art { object-fit: cover; object-position: center; }
+.plate-missing { background: linear-gradient(180deg, #2c2824, #14110e); }
+.plate-mark {
+  position: absolute;
+  top: 3.4cqi;
+  right: 3.4cqi;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  gap: 2cqi;
+}
+.plate-copy {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8cqi;
+  padding: 16% 5.5% 3.4%;
+  background: linear-gradient(180deg, transparent, rgba(12, 10, 8, 0.78) 46%, rgba(12, 10, 8, 0.92));
+  text-align: center;
+}
+.plate-name {
+  margin: 0;
+  font-size: 5.4cqi;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+.plate-verse {
+  margin: 0;
+  font-size: 3.5cqi;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  opacity: 0.88;
+}
+/* 渊柜的卡名印进画面上的标本图签，不跟下沿题款挤在一起。 */
+.card-front.is-plate.is-abyss .plate-copy {
+  top: 0;
+  padding: 0 5.5% 3.2%;
+  justify-content: flex-end;
+  background: linear-gradient(180deg, transparent 0 89%, rgba(12, 10, 8, 0.62) 94%, rgba(12, 10, 8, 0.88));
+}
+.card-front.is-plate.is-abyss .plate-name {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 84.2%;
+  margin: 0;
+  transform: translateY(-50%);
+  color: #2a2418;
+  font-size: 4.4cqi;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-indent: 0.16em;
+  text-shadow: 0 0 6px rgba(244, 238, 226, 0.95);
+}
+.card-front.is-plate .card-glare {
+  z-index: 4;
+  opacity: 0;
+  mix-blend-mode: soft-light;
+  background:
+    radial-gradient(circle at var(--mx, 50%) var(--my, 36%), rgba(255, 255, 255, 0.95), transparent 24%),
+    linear-gradient(108deg, transparent calc(var(--mx, 50%) - 16%), rgba(255, 255, 255, 0.55) var(--mx, 50%), transparent calc(var(--mx, 50%) + 14%));
+  transition: opacity 0.16s linear;
+}
+.tcg-card.is-tilting.rarity-N .card-front.is-plate .card-glare { opacity: 0.28; }
+.tcg-card.is-tilting.rarity-R .card-front.is-plate .card-glare { opacity: 0.55; }
+.tcg-card.is-tilting.rarity-SR .card-front.is-plate .card-glare { opacity: 0.72; }
+.tcg-card.is-tilting.rarity-SSR .card-front.is-plate .card-glare { opacity: 0.82; mix-blend-mode: normal; }
+.tcg-card.is-tilting.rarity-SECRET .card-front.is-plate .card-glare { opacity: 0.95; mix-blend-mode: normal; }
+.card-front.is-plate.is-silk::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    115deg,
+    transparent calc(var(--mx, 50%) - 28%),
+    rgba(255, 248, 220, 0.55) var(--mx, 50%),
+    transparent calc(var(--mx, 50%) + 22%)
+  );
+  mix-blend-mode: soft-light;
+  transition: opacity 0.16s linear;
+}
+.rarity-SECRET .card-front.is-plate.is-silk::after {
+  background: linear-gradient(
+    115deg,
+    transparent calc(var(--mx, 50%) - 22%),
+    rgba(236, 220, 255, 0.82) var(--mx, 50%),
+    transparent calc(var(--mx, 50%) + 18%)
+  );
+  mix-blend-mode: normal;
+}
+.tcg-card.is-tilting .card-front.is-plate.is-silk::after { opacity: 1; }

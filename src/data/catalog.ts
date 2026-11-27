@@ -6,6 +6,7 @@ import type {
   RateTierDef,
   Rarity,
 } from '../types/game'
+import { PLATE_CARDS } from './plates'
 import { SOLAR_CARDS } from './solarTerms'
 
 export const SUPPLY_COINS = 500
@@ -53,7 +54,7 @@ export const BASE_WEIGHTS: Record<Rarity, number> = {
   SECRET: 1,
 }
 
-export const CARDS: readonly CardDef[] = SOLAR_CARDS
+export const CARDS: readonly CardDef[] = [...SOLAR_CARDS, ...PLATE_CARDS]
 
 /** 在售卡包。新增时加一条，卡牌的 seriesId 填同一个 id。 */
 export const PACK_SERIES: readonly PackSeries[] = [
@@ -63,6 +64,78 @@ export const PACK_SERIES: readonly PackSeries[] = [
     code: '廿四',
     blurb: '从二十四张里开出五张。',
     accent: '#8e3a38',
+    crest: 'planet',
+  },
+  {
+    id: 'zodiac',
+    name: '生肖双相',
+    code: '双相',
+    blurb: '十二生肖，各有本相和瑞相。',
+    accent: '#8e3a38',
+    crest: 'torus',
+  },
+  {
+    id: 'abyss',
+    name: '渊柜',
+    code: '渊柜',
+    blurb: '潮声研究所的深海标本。',
+    accent: '#1e4f78',
+    crest: 'plus',
+  },
+  {
+    id: 'sill',
+    name: '窗台花房',
+    code: '花房',
+    blurb: '这栋楼窗台上的二十四个品种。',
+    accent: '#3f6b56',
+    crest: 'planet',
+  },
+  {
+    id: 'circus',
+    name: '棉绒马戏',
+    code: '马戏',
+    blurb: '旧衣服缝成的马戏团。',
+    accent: '#c4622d',
+    crest: 'torus',
+  },
+  {
+    id: 'train',
+    name: '末班电车',
+    code: '末班',
+    blurb: '二十四点发出的那一班。',
+    accent: '#5c3478',
+    crest: 'plus',
+  },
+  {
+    id: 'beetle',
+    name: '鞘翅匣',
+    code: '鞘翅',
+    blurb: '一只二十四格的标本匣。',
+    accent: '#146b56',
+    crest: 'planet',
+  },
+  {
+    id: 'kitchen',
+    name: '第二口',
+    code: '第二',
+    blurb: '只做第二道菜的小馆。',
+    accent: '#8a6424',
+    crest: 'torus',
+  },
+  {
+    id: 'pixel',
+    name: '未发行',
+    code: '未发',
+    blurb: '一枚没上市的卡带，里面二十四间房。',
+    accent: '#1e4f78',
+    crest: 'plus',
+  },
+  {
+    id: 'musicbox',
+    name: '发条匣',
+    code: '发条',
+    blurb: '钟表匠留下的二十四只盒子。',
+    accent: '#8a6424',
     crest: 'planet',
   },
 ]

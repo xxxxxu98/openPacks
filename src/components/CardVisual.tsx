@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { RARITY_LABEL, formatSerial } from '../data/catalog'
+import { PACK_SERIES, RARITY_LABEL, formatSerial } from '../data/catalog'
 import { SEASON_LABEL } from '../data/solarTerms'
 import { usePointerTilt } from '../hooks/usePointerTilt'
 import type { CardDef, Rarity } from '../types/game'
+import { PlateArt } from './PlateArt'
 import { SolarScene } from './SolarScene'
 
 const HOU = ['一候', '二候', '三候'] as const
@@ -81,7 +82,14 @@ function CardBoard() {
   )
 }
 
-/** 节气册页。正面写季节、墨画、三候和题款，背面是一枚岁印。 */
+/** 卡背第二行。节气沿用原来的两行，别的套印短码和名称。 */
+function backLines(seriesId: string) {
+  if (seriesId === 'solar') return ['节气', '二十四'] as const
+  const series = PACK_SERIES.find((item) => item.id === seriesId)
+  return [series?.code ?? '岁', series?.name ?? ''] as const
+}
+
+/** 卡面。节气是册页，其余套是整张画心，编号和品级都印在面上。 */
 export function CardVisual({
   card,
   size = 'md',
@@ -113,7 +121,28 @@ export function CardVisual({
   const silk = card.rarity === 'SSR' || card.rarity === 'SECRET'
   const high = HIGH_GRADE.has(card.rarity)
 
-  const face = (
+  const plate = card.face === 'plate'
+  const [backCode, backName] = backLines(card.seriesId)
+  const face = plate ? (
+    <div className={`card-face card-front is-plate${card.seriesId === 'abyss' ? ' is-abyss' : ''}${silk ? ' is-silk' : ''}${flippable ? '' : ' is-flat'}`}>
+      <PlateArt art={card.art} />
+      <div className="leaf-rim" />
+      <div className="plate-mark">
+        {isNew ? <em className="new-tag">新</em> : null}
+        <span className="leaf-rank">{RANK[card.rarity]}</span>
+      </div>
+      <div className="plate-copy">
+        <h3 className="plate-name">{card.name}</h3>
+        <p className="plate-verse">{card.verse}</p>
+        <footer className="leaf-foot">
+          <span>{formatSerial(card)}</span>
+          <span className="leaf-grade">{RARITY_LABEL[card.rarity]}</span>
+        </footer>
+      </div>
+      <div className="card-glare" />
+      {sweep && silk ? <i className={`card-foil card-foil-${card.rarity}`} aria-hidden /> : null}
+    </div>
+  ) : (
     <div
       className={`card-face card-front is-leaf season-${card.season}${silk ? ' is-silk' : ''}${flippable ? '' : ' is-flat'}`}
     >
@@ -161,7 +190,7 @@ export function CardVisual({
       className={`card-visual${still ? ' is-steady' : ''}${thick ? ' is-thick' : ''}`}
       data-size={size}
       data-rarity={card.rarity}
-      data-season={card.season}
+      data-season={plate ? undefined : card.season}
     >
       <div className={`card-stage${revealing ? ` is-revealing reveal-${card.rarity}` : ''}`}>
       {revealing && (
@@ -206,8 +235,8 @@ export function CardVisual({
               岁
             </div>
             <div className="leaf-back-word">
-              <span>节气</span>
-              <span>二十四</span>
+              <span>{backCode}</span>
+              <span>{backName}</span>
             </div>
           </div>
         )}

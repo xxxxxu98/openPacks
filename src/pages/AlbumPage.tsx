@@ -18,6 +18,9 @@ export function AlbumPage() {
   const collected = pool.reduce((sum, card) => sum + ((state.owned[card.id] ?? 0) > 0 ? 1 : 0), 0)
   const width = String(pool.length).length
   const starter = listOffers()[0]
+  const seriesName = PACK_SERIES.find((series) => series.id === seriesId)?.name
+  /** 全部卡包时只写图鉴，选中一套时用那一套的名字。 */
+  const title = seriesId === 'ALL' ? '图鉴' : seriesName ?? '图鉴'
   const visible = pool.filter((card) => filter === 'ALL' || card.rarity === filter)
   const active = activeId ? getCard(activeId) : null
 
@@ -31,7 +34,7 @@ export function AlbumPage() {
     <section className="page">
       <div className="section-head dex-head">
         <div className="dex-title">
-          <h1>二十四节气</h1>
+          <h1>{title}</h1>
           <span className="progress-pill">
             {String(collected).padStart(width, '0')} / {pool.length}
           </span>
