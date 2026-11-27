@@ -1,3 +1,4 @@
+import { GRADE_HIT_SEC } from '../gradeHit'
 import type { Rarity } from '../types/game'
 
 /** 用 Web Audio 实时合成点击、撕裂、爆发和翻卡，不加载外部音频。 */
@@ -64,7 +65,7 @@ class SoundEngine {
     }
   }
 
-  /** 翻开时按品级给不同的声音：纸响、拨弦、落印、金弦、钟鸣。 */
+  /** 翻开时按品级给不同的声音。高等级先轻轻升起，落到正中再落印。 */
   flip(rarity: Rarity) {
     if (!this.ready()) return
     if (rarity === 'N') {
@@ -77,35 +78,38 @@ class SoundEngine {
       this.tone(659, 0.18, 'triangle', 0.07, 0.038)
       return
     }
+    const hit = GRADE_HIT_SEC
+    this.glide(196, 620, hit, 'sine', 0, 0.016)
+    this.noiseBurst(hit * 0.85, 420, 1400, 0.022)
     if (rarity === 'SR') {
-      this.drop(210, 0.16, 0.07)
-      this.noiseBurst(0.16, 700, 2400, 0.045)
-      this.tone(587, 0.2, 'triangle', 0.04, 0.05)
-      this.tone(740, 0.24, 'triangle', 0.1, 0.044)
-      this.tone(988, 0.28, 'sine', 0.16, 0.036)
+      this.drop(210, 0.16, 0.07, hit)
+      this.noiseBurst(0.16, 700, 2400, 0.045, hit)
+      this.tone(587, 0.2, 'triangle', hit + 0.04, 0.05)
+      this.tone(740, 0.24, 'triangle', hit + 0.1, 0.044)
+      this.tone(988, 0.28, 'sine', hit + 0.16, 0.036)
       return
     }
     if (rarity === 'SSR') {
-      this.drop(160, 0.28, 0.06)
-      this.noiseBurst(0.42, 280, 3400, 0.06)
-      this.glide(392, 1175, 0.55, 'sine', 0.02, 0.032)
+      this.drop(160, 0.28, 0.06, hit)
+      this.noiseBurst(0.42, 280, 3400, 0.06, hit)
+      this.glide(392, 1175, 0.55, 'sine', hit + 0.02, 0.032)
       for (const [index, freq] of [523, 659, 784, 1047].entries()) {
-        this.tone(freq, 0.72, 'triangle', index * 0.06, 0.048)
+        this.tone(freq, 0.72, 'triangle', hit + index * 0.06, 0.048)
       }
-      this.tone(1568, 0.36, 'sine', 0.22, 0.026)
-      this.noiseBurst(0.32, 220, 3800, 0.06, 0.2)
-      this.tone(1318, 0.42, 'sine', 0.2, 0.03)
+      this.tone(1568, 0.36, 'sine', hit + 0.22, 0.026)
+      this.noiseBurst(0.32, 220, 3800, 0.06, hit + 0.2)
+      this.tone(1318, 0.42, 'sine', hit + 0.2, 0.03)
       return
     }
-    this.drop(92, 0.45, 0.08)
-    this.noiseBurst(0.85, 180, 4600, 0.07)
-    this.glide(330, 1760, 0.9, 'sine', 0.06, 0.034)
+    this.drop(92, 0.45, 0.08, hit)
+    this.noiseBurst(0.85, 180, 4600, 0.07, hit)
+    this.glide(330, 1760, 0.9, 'sine', hit + 0.06, 0.034)
     for (const [index, freq] of [523, 784, 1047, 1319, 1568].entries()) {
-      this.tone(freq, 1.15, 'triangle', 0.08 + index * 0.09, 0.042)
-      this.tone(freq * 1.01, 1.05, 'sine', 0.1 + index * 0.09, 0.016)
+      this.tone(freq, 1.15, 'triangle', hit + 0.08 + index * 0.09, 0.042)
+      this.tone(freq * 1.01, 1.05, 'sine', hit + 0.1 + index * 0.09, 0.016)
     }
-    this.noiseBurst(0.4, 160, 4800, 0.075, 0.22)
-    this.tone(2093, 0.5, 'sine', 0.24, 0.028)
+    this.noiseBurst(0.4, 160, 4800, 0.075, hit + 0.22)
+    this.tone(2093, 0.5, 'sine', hit + 0.24, 0.028)
   }
 
   coin() {
@@ -183,12 +187,12 @@ class SoundEngine {
   }
 
   /** 一下闷击，音高很快落下去。 */
-  private drop(freq: number, duration: number, peak: number) {
+  private drop(freq: number, duration: number, peak: number, when = 0) {
     if (!this.ready() || !this.master) return
     const ctx = this.context()
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
-    const start = ctx.currentTime
+    const start = ctx.currentTime + when
     osc.type = 'sine'
     osc.frequency.setValueAtTime(freq, start)
     osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq * 0.45), start + duration)

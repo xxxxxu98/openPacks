@@ -7,6 +7,7 @@ import { GradeSpectacle } from '../components/GradeSpectacle'
 import { PackDetail } from '../components/PackDetail'
 import { PackVisual } from '../components/PackVisual'
 import { RARITY_LABEL, getCard, getOffer, listOffers } from '../data/catalog'
+import { GRADE_HIT_MS } from '../gradeHit'
 import { bestRarity, rollPack } from '../data/pull'
 import {
   commitOpen,
@@ -294,7 +295,7 @@ export function RipPage() {
     scheduleNext(240)
   }
 
-  /** 超稀有以上霸屏，震一下后停住，等点蒙层。 */
+  /** 超稀有以上霸屏。卡落到正中再震一下，然后停住等点蒙层。 */
   const hitGrade = (card: CardDef, isNew: boolean, x: number, y: number) => {
     const rarity = card.rarity
     if (rarity !== 'SR' && rarity !== 'SSR' && rarity !== 'SECRET') return
@@ -303,18 +304,21 @@ export function RipPage() {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const root = document.documentElement
     if (reduce) return
-    root.classList.add('is-screen-shaking')
-    root.dataset.shake = rarity === 'SECRET' ? 'hard' : rarity === 'SSR' ? 'mid' : 'soft'
-    if (rarity === 'SECRET') navigator.vibrate?.([22, 36, 28, 40, 18])
-    else if (rarity === 'SSR') navigator.vibrate?.([18, 28, 16])
-    else navigator.vibrate?.(16)
     const shakeMs = rarity === 'SECRET' ? 1050 : rarity === 'SSR' ? 780 : 500
     window.clearTimeout(gradeTimer.current)
     gradeTimer.current = window.setTimeout(() => {
       if (gradeToken.current !== token) return
-      root.classList.remove('is-screen-shaking')
-      delete root.dataset.shake
-    }, shakeMs)
+      root.classList.add('is-screen-shaking')
+      root.dataset.shake = rarity === 'SECRET' ? 'hard' : rarity === 'SSR' ? 'mid' : 'soft'
+      if (rarity === 'SECRET') navigator.vibrate?.([22, 36, 28, 40, 18])
+      else if (rarity === 'SSR') navigator.vibrate?.([18, 28, 16])
+      else navigator.vibrate?.(16)
+      gradeTimer.current = window.setTimeout(() => {
+        if (gradeToken.current !== token) return
+        root.classList.remove('is-screen-shaking')
+        delete root.dataset.shake
+      }, shakeMs)
+    }, GRADE_HIT_MS)
   }
 
   const flipOne = (item: DrawnCard, fromQueue = false) => {

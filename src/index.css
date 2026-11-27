@@ -1176,9 +1176,9 @@ button.tear-track:active { cursor: grabbing; }
   .gold-foil-text, .rarity-SECRET .card-front, .peek-aura.active-SEC,
   .view-animate-in, .fan-pop, .golden-flash, .shop-meta .is-pop, .shop-toast,
   .grade-flash, .grade-callout, .reveal-ring, .reveal-pillar, .reveal-stamp, .reveal-sheen::before,
-  .grade-show, .grade-word, .grade-card-name, .grade-lines, .grade-rays, .grade-pillar,
+  .grade-show, .grade-front, .grade-veil, .grade-word, .grade-card-name, .grade-lines, .grade-rays, .grade-pillar,
   .grade-seal, .grade-shock, .grade-slash, .grade-orbs i, .grade-chroma, .grade-bolts polyline,
-  .grade-bars::before, .grade-bars::after,
+  .grade-bars::before, .grade-bars::after, .card-foil,
   .card-visual:has(.is-revealing.reveal-SR),
   .card-visual:has(.is-revealing.reveal-SSR),
   .card-visual:has(.is-revealing.reveal-SECRET) {
@@ -1190,7 +1190,7 @@ button.tear-track:active { cursor: grabbing; }
   .grade-callout { opacity: 1; transform: translate(-50%, 0); }
   .reveal-stamp { opacity: 1; transform: translate(-50%, -120%); }
   .grade-lines, .grade-rays, .grade-shock, .grade-slash, .grade-orbs,
-  .grade-flash, .grade-chroma, .grade-bolts, .grade-pillar, .grade-seal { display: none !important; }
+  .grade-flash, .grade-chroma, .grade-bolts, .grade-pillar, .grade-seal, .card-foil { display: none !important; }
   .grade-word, .grade-card-name, .grade-hint { opacity: 1; transform: none; filter: none; }
   .grade-stage { animation: none !important; filter: none; }
   .card-visual:has(.is-revealing) { filter: none; transform: none; }
@@ -1261,6 +1261,10 @@ button.tear-track:active { cursor: grabbing; }
 .foil-pack-wrapper.is-paper .tear-progress-bar {
   background: #8e3a38;
   box-shadow: none;
+}
+.foil-pack-wrapper.is-paper .tear-mouth,
+.foil-pack-wrapper.is-paper .cap-tear-lip {
+  display: none;
 }
 .foil-pack-wrapper.is-paper .pack-brand .gold-foil-text {
   background: none;
@@ -1975,15 +1979,27 @@ button.tear-track:active { cursor: grabbing; }
   --flash-peak: 0.82;
   --life: 3.3s;
 }
-.grade-show {
+.grade-show,
+.grade-front {
+  --hit: 0.42s;
   --sx: 50%;
   --sy: 46%;
+}
+.grade-show {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 42;
   overflow: hidden;
-  pointer-events: auto;
+  pointer-events: none;
 }
+.grade-front {
+  position: fixed;
+  inset: 0;
+  z-index: 52;
+  pointer-events: none;
+}
+.grade-show.is-leaving,
+.grade-front.is-leaving { animation: gradeFade 0.18s ease forwards; }
 .grade-dismiss {
   position: absolute;
   inset: 0;
@@ -1992,6 +2008,7 @@ button.tear-track:active { cursor: grabbing; }
   padding: 0;
   background: transparent;
   cursor: pointer;
+  pointer-events: auto;
 }
 .grade-veil,
 .grade-lines,
@@ -2006,6 +2023,7 @@ button.tear-track:active { cursor: grabbing; }
 .grade-bars { position: absolute; pointer-events: none; }
 .grade-veil {
   inset: 0;
+  animation: veilIn 0.22s ease both;
   background: radial-gradient(ellipse 240px 320px at 50% 48%, rgba(8, 6, 4, 0.28), rgba(0, 0, 0, 0.78) 42%, rgba(0, 0, 0, 0.92) 100%);
 }
 .grade-show-SECRET .grade-veil {
@@ -2021,8 +2039,9 @@ button.tear-track:active { cursor: grabbing; }
   -webkit-mask-image: radial-gradient(ellipse 500px 680px at var(--sx) var(--sy), transparent 0 54%, #000 72%, #000 100%);
   mask-image: radial-gradient(ellipse 500px 680px at var(--sx) var(--sy), transparent 0 54%, #000 72%, #000 100%);
   mix-blend-mode: screen;
-  animation: lineBurst 1.5s ease-out both;
+  animation: lineBurst 1.5s ease-out var(--hit) both;
 }
+.grade-show-SR .grade-lines { animation-name: lineFade; }
 .grade-rays {
   left: var(--sx);
   top: var(--sy);
@@ -2037,15 +2056,34 @@ button.tear-track:active { cursor: grabbing; }
   -webkit-mask-image: radial-gradient(ellipse 520px 700px at center, transparent 0 62%, #000 80%, #000 100%);
   mask-image: radial-gradient(ellipse 520px 700px at center, transparent 0 62%, #000 80%, #000 100%);
   mix-blend-mode: screen;
-  opacity: 0.92;
-  animation: raySpin 14s linear infinite;
+  opacity: 0;
+  animation:
+    raySpin 22s linear infinite,
+    rayIn 0.8s ease var(--hit) both,
+    rayBreath 4.4s ease-in-out calc(var(--hit) + 0.8s) infinite;
+}
+.grade-show-SR .grade-rays {
+  --ray-dim: 0.26;
+  --ray-peak: 0.5;
+  animation-duration: 34s, 0.8s, 6s;
+}
+.grade-show-SECRET .grade-rays:not(.grade-rays-back) {
+  --ray-dim: 0.72;
+  --ray-peak: 1;
+  animation-duration: 16s, 0.7s, 3.4s;
 }
 .grade-rays-back {
   width: 210vmax;
   height: 210vmax;
-  opacity: 0.62;
-  animation-duration: 20s;
-  animation-direction: reverse;
+  --ray-dim: 0.34;
+  --ray-peak: 0.62;
+  animation-duration: 26s, 0.8s, 4.8s;
+  animation-direction: reverse, normal, normal;
+}
+.grade-show-SECRET .grade-rays-back {
+  --ray-dim: 0.42;
+  --ray-peak: 0.74;
+  animation-duration: 22s, 0.7s, 3.4s;
 }
 .grade-pillar {
   inset: 0;
@@ -2058,7 +2096,13 @@ button.tear-track:active { cursor: grabbing; }
   filter: blur(14px);
   mix-blend-mode: screen;
   transform-origin: center;
-  animation: pillarBoom 1.45s cubic-bezier(0.16, 0.8, 0.2, 1) both;
+  animation: pillarBoom 1.35s cubic-bezier(0.16, 0.8, 0.2, 1) var(--hit) both;
+}
+.grade-show-SSR .grade-pillar,
+.grade-show-SECRET .grade-pillar {
+  animation:
+    pillarSettle 1.45s cubic-bezier(0.16, 0.8, 0.2, 1) var(--hit) both,
+    pillarBreath 3.6s ease-in-out calc(var(--hit) + 1.45s) infinite;
 }
 .grade-show-SR .grade-pillar {
   background-size: 8vw 100%, 8vw 100%;
@@ -2068,7 +2112,7 @@ button.tear-track:active { cursor: grabbing; }
   background-size: 18vw 100%, 18vw 100%;
   background-position: calc(var(--sx) - 270px) 0, calc(var(--sx) + 270px) 0;
   filter: blur(18px);
-  animation-duration: 1.8s;
+  animation-duration: 1.7s, 3.2s;
 }
 .grade-seal {
   left: var(--sx);
@@ -2078,15 +2122,16 @@ button.tear-track:active { cursor: grabbing; }
   border-radius: 50%;
   border: 2px solid var(--glow);
   box-shadow: 0 0 28px var(--glow), inset 0 0 22px var(--glow-dim);
-  opacity: 0.9;
-  animation: sealTurn 12s linear infinite;
+  opacity: 0;
+  animation: sealTurn 14s linear var(--hit) infinite, sealIn 0.55s ease var(--hit) both;
 }
+.grade-show-SR .grade-seal { animation-duration: 28s, 0.55s; }
 .grade-seal-inner {
   width: 58vmin;
   height: 58vmin;
   border-style: dashed;
-  animation-duration: 9s;
-  animation-direction: reverse;
+  animation-duration: 9s, 0.55s;
+  animation-direction: reverse, normal;
 }
 .grade-shock {
   left: var(--sx);
@@ -2096,7 +2141,8 @@ button.tear-track:active { cursor: grabbing; }
   border-radius: 50%;
   border: 4px solid var(--glow);
   box-shadow: 0 0 28px var(--glow), 0 0 70px var(--glow-dim), inset 0 0 16px var(--hot);
-  animation: shockOut 1.15s cubic-bezier(0.05, 0.65, 0.15, 1) both;
+  opacity: 0;
+  animation: shockOut 1.15s cubic-bezier(0.05, 0.65, 0.15, 1) forwards;
 }
 .grade-show-SSR .grade-shock { border-width: 4px; animation-duration: 1.3s; }
 .grade-show-SECRET .grade-shock { border-width: 5px; animation-duration: 1.5s; }
@@ -2113,7 +2159,7 @@ button.tear-track:active { cursor: grabbing; }
   background: linear-gradient(90deg, transparent, var(--glow-dim), #fff, var(--glow-dim), transparent);
   filter: blur(8px);
   mix-blend-mode: screen;
-  animation: slashCut 0.62s cubic-bezier(0.08, 0.8, 0.2, 1) both;
+  animation: slashCut 0.62s cubic-bezier(0.08, 0.8, 0.2, 1) var(--hit) both;
 }
 .grade-orbs { position: absolute; inset: 0; pointer-events: none; }
 .grade-orbs i {
@@ -2124,27 +2170,28 @@ button.tear-track:active { cursor: grabbing; }
   background: radial-gradient(circle, var(--hot), transparent 68%);
   filter: blur(2px);
   mix-blend-mode: screen;
-  animation: orbDrift 2.3s ease-out forwards;
+  opacity: 0;
+  animation: orbDrift 2.3s ease-out var(--hit) forwards;
 }
 .grade-show-SECRET .grade-orbs i { width: 38vmax; height: 38vmax; }
 .grade-orbs i:nth-child(1) { left: -6%; top: 6%; }
-.grade-orbs i:nth-child(2) { right: -8%; top: 12%; animation-delay: 0.08s; }
-.grade-orbs i:nth-child(3) { left: 2%; bottom: -4%; animation-delay: 0.14s; }
-.grade-orbs i:nth-child(4) { right: 0; bottom: -6%; animation-delay: 0.2s; }
+.grade-orbs i:nth-child(2) { right: -8%; top: 12%; animation-delay: calc(var(--hit) + 0.08s); }
+.grade-orbs i:nth-child(3) { left: 2%; bottom: -4%; animation-delay: calc(var(--hit) + 0.14s); }
+.grade-orbs i:nth-child(4) { right: 0; bottom: -6%; animation-delay: calc(var(--hit) + 0.2s); }
 .grade-flash {
   inset: 0;
   background: radial-gradient(ellipse 90vw 80vh at var(--sx) var(--sy), #fff 0%, var(--hot) 18%, transparent 62%);
   mix-blend-mode: screen;
-  animation: hitFlash 0.5s ease-out both;
+  animation: hitFlash 0.5s ease-out var(--hit) both;
 }
-.grade-flash-late { animation-delay: 0.28s; animation-duration: 0.46s; }
+.grade-flash-late { animation-delay: calc(var(--hit) + 0.28s); animation-duration: 0.46s; }
 .grade-chroma {
   inset: 0;
   background:
     radial-gradient(circle at calc(var(--sx) - 22px) var(--sy), rgba(255, 110, 150, 0.55), transparent 26%),
     radial-gradient(circle at calc(var(--sx) + 22px) var(--sy), rgba(110, 190, 255, 0.55), transparent 26%);
   mix-blend-mode: screen;
-  animation: hitFlash 0.38s ease-out both;
+  animation: hitFlash 0.38s ease-out var(--hit) both, chromaWash 5.4s ease-in-out calc(var(--hit) + 2.6s) infinite;
 }
 .grade-bolts { inset: 0; width: 100%; height: 100%; mix-blend-mode: screen; overflow: visible; }
 .grade-bolts polyline {
@@ -2155,10 +2202,11 @@ button.tear-track:active { cursor: grabbing; }
   stroke-linecap: round;
   filter: drop-shadow(0 0 6px #d7c4ef);
   stroke-dasharray: 14 90;
-  animation: boltRun 0.38s linear 4;
+  opacity: 0;
+  animation: boltRun 0.38s linear var(--hit) 4;
 }
-.grade-bolts polyline:nth-child(2) { animation-delay: 0.08s; stroke: #fff; }
-.grade-bolts polyline:nth-child(3) { animation-delay: 0.14s; }
+.grade-bolts polyline:nth-child(2) { animation-delay: calc(var(--hit) + 0.08s); stroke: #fff; }
+.grade-bolts polyline:nth-child(3) { animation-delay: calc(var(--hit) + 0.14s); }
 .grade-bars { inset: 0; }
 .grade-bars::before,
 .grade-bars::after {
@@ -2168,7 +2216,7 @@ button.tear-track:active { cursor: grabbing; }
   right: 0;
   height: 9vh;
   background: #070605;
-  animation: barIn 0.28s cubic-bezier(0.16, 0.8, 0.2, 1) both;
+  animation: barIn 0.28s cubic-bezier(0.16, 0.8, 0.2, 1) 0.16s both;
 }
 .grade-show-SR .grade-bars::before,
 .grade-show-SR .grade-bars::after { height: 6vh; }
@@ -2186,11 +2234,40 @@ button.tear-track:active { cursor: grabbing; }
   gap: 14px;
   width: min(460px, 86vw);
   transform: translate(-50%, -50%);
-  animation: heroIn 0.78s cubic-bezier(0.16, 0.84, 0.24, 1) both;
+  pointer-events: auto;
+  animation: heroIn 0.7s linear both;
 }
 .grade-hero {
   width: min(400px, 72vw, 54vh);
-  animation: heroGlow 1.8s ease-in-out 0.78s infinite;
+  animation: heroGlow 2.6s ease-in-out calc(var(--hit) + 0.28s) infinite;
+}
+.card-foil {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 34%,
+    rgba(255, 236, 190, 0.15) 44%,
+    rgba(255, 248, 220, 0.85) 50%,
+    rgba(255, 255, 255, 0.95) 52%,
+    transparent 64%
+  );
+  mix-blend-mode: screen;
+  transform: translateX(-120%);
+  animation: foilSweep 3.8s ease-in-out calc(var(--hit, 0.42s) + 0.95s) infinite;
+}
+.card-foil-SECRET {
+  background: linear-gradient(
+    105deg,
+    transparent 32%,
+    rgba(215, 196, 239, 0.35) 44%,
+    rgba(255, 255, 255, 0.92) 50%,
+    rgba(255, 186, 206, 0.4) 56%,
+    transparent 68%
+  );
+  animation-duration: 4.8s;
 }
 .grade-stage .card-visual { width: 100%; }
 .grade-banner {
@@ -2214,7 +2291,7 @@ button.tear-track:active { cursor: grabbing; }
   font-size: 13px;
   letter-spacing: 0.42em;
   text-indent: 0.42em;
-  animation: nameRise 0.7s ease 0.85s both;
+  animation: nameRise 0.7s ease calc(var(--hit) + 0.5s) both;
 }
 .grade-word {
   position: relative;
@@ -2230,7 +2307,7 @@ button.tear-track:active { cursor: grabbing; }
     0 0 36px var(--glow),
     0 0 90px var(--glow),
     0 10px 0 rgba(0, 0, 0, 0.35);
-  animation: wordSlam 0.82s cubic-bezier(0.16, 0.8, 0.2, 1) forwards;
+  animation: wordSlam 0.62s cubic-bezier(0.16, 0.8, 0.2, 1) var(--hit) both;
 }
 .grade-banner-SR .grade-word { color: #e9fff8; font-size: clamp(48px, 8vw, 108px); }
 .grade-banner-SSR .grade-word { color: #fff3c4; }
@@ -2244,7 +2321,7 @@ button.tear-track:active { cursor: grabbing; }
   width: 100%;
   letter-spacing: inherit;
   opacity: 0;
-  animation: chromaHit 0.42s steps(2, end) 2 both;
+  animation: chromaHit 0.42s steps(2, end) var(--hit) 2 both, chromaIdle 5.4s ease-in-out calc(var(--hit) + 2.6s) infinite;
 }
 .grade-banner-SECRET .grade-word::before { color: #ff9eb6; transform: translate(-8px, 0); }
 .grade-banner-SECRET .grade-word::after { color: #9fd8ff; transform: translate(8px, 0); }
@@ -2257,15 +2334,22 @@ button.tear-track:active { cursor: grabbing; }
   text-indent: 0.48em;
   color: #fff;
   text-shadow: 0 0 18px var(--glow);
-  animation: nameRise 0.55s ease 0.2s forwards;
+  animation: nameRise 0.5s ease calc(var(--hit) + 0.16s) both;
 }
 @keyframes heroIn {
   0% {
-    transform: translate(-50%, -50%) translate(calc(var(--ox) - 50vw), calc(var(--oy) - 46vh)) scale(0.38);
-    filter: brightness(2.8);
+    transform: translate(-50%, -50%) translate(calc(var(--ox) - 50vw), calc(var(--oy) - 46vh)) scale(0.4);
+    filter: brightness(1.08);
   }
-  64% { transform: translate(-50%, -50%) scale(1.08); filter: brightness(1.2); }
+  60% { transform: translate(-50%, -50%) scale(1.08); filter: brightness(2.2); }
   100% { transform: translate(-50%, -50%) scale(1); filter: brightness(1); }
+}
+@keyframes gradeFade {
+  to { opacity: 0; }
+}
+@keyframes veilIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 @keyframes heroGlow {
   0%, 100% { filter: drop-shadow(0 0 16px var(--glow)); }
@@ -2273,8 +2357,21 @@ button.tear-track:active { cursor: grabbing; }
 }
 @keyframes lineBurst {
   0% { opacity: 0; transform: scale(0.72); }
-  12% { opacity: 1; transform: scale(1); }
-  100% { opacity: 0.62; transform: scale(1); }
+  18% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.55; transform: scale(1); }
+}
+@keyframes lineFade {
+  0% { opacity: 0; transform: scale(0.72); }
+  16% { opacity: 0.85; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes rayIn {
+  from { opacity: 0; }
+  to { opacity: var(--ray-peak, 0.9); }
+}
+@keyframes rayBreath {
+  0%, 100% { opacity: var(--ray-dim, 0.58); }
+  50% { opacity: var(--ray-peak, 0.92); }
 }
 @keyframes raySpin {
   from { transform: translate(-50%, -50%) rotate(0deg); }
@@ -2284,6 +2381,19 @@ button.tear-track:active { cursor: grabbing; }
   0% { opacity: 0; transform: scaleY(0.15); }
   26% { opacity: 1; transform: scaleY(1); }
   100% { opacity: 0; transform: scaleY(1.02); }
+}
+@keyframes pillarSettle {
+  0% { opacity: 0; transform: scaleY(0.15); }
+  26% { opacity: 1; transform: scaleY(1); }
+  100% { opacity: 0.24; transform: scaleY(1); }
+}
+@keyframes pillarBreath {
+  0%, 100% { opacity: 0.16; }
+  50% { opacity: 0.36; }
+}
+@keyframes sealIn {
+  from { opacity: 0; }
+  to { opacity: 0.9; }
 }
 @keyframes sealTurn {
   from { transform: translate(-50%, -50%) rotate(0deg); }
@@ -2330,4 +2440,18 @@ button.tear-track:active { cursor: grabbing; }
 @keyframes chromaHit {
   0%, 100% { opacity: 0; }
   40%, 70% { opacity: 0.85; }
+}
+@keyframes chromaIdle {
+  0%, 82%, 100% { opacity: 0; }
+  86%, 91% { opacity: 0.85; }
+}
+@keyframes chromaWash {
+  0%, 84%, 100% { opacity: 0; }
+  89%, 93% { opacity: 0.8; }
+}
+@keyframes foilSweep {
+  0%, 16% { transform: translateX(-120%); opacity: 0; }
+  28% { opacity: 1; }
+  52% { transform: translateX(120%); opacity: 0.95; }
+  64%, 100% { transform: translateX(120%); opacity: 0; }
 }

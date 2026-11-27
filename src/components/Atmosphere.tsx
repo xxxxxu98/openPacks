@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { GRADE_HIT_MS } from '../gradeHit'
 import type { Rarity } from '../types/game'
 
 type Mote = { x: number; y: number; r: number; vx: number; vy: number; a: number }
@@ -162,19 +163,56 @@ export function Atmosphere() {
       document.querySelector('.volumetric-beams')?.classList.add('gold-surge')
       window.setTimeout(() => document.querySelector('.volumetric-beams')?.classList.remove('gold-surge'), 900)
     }
+    /** 停住之后从卡的四周往外飘一点余烬，不穿过卡面。 */
+    const ember = (event: Event) => {
+      const rarity = (event as CustomEvent<{ rarity?: Rarity }>).detail?.rarity
+      if (reduced || (rarity !== 'SSR' && rarity !== 'SECRET')) return
+      const look = GRADE_LOOK[rarity]
+      const cx = fx.width / 2
+      const cy = fx.height * 0.46
+      const count = rarity === 'SECRET' ? 16 : 9
+      for (let i = 0; i < count; i += 1) {
+        const angle = Math.random() * Math.PI * 2
+        const rx = 220 + Math.random() * 90
+        const ry = 280 + Math.random() * 80
+        const speed = 0.8 + Math.random() * 1.8
+        pushSpark({
+          x: cx + Math.cos(angle) * rx,
+          y: cy + Math.sin(angle) * ry,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 0.35,
+          size: look.size * (0.45 + Math.random() * 0.5),
+          color: look.colors[i % look.colors.length] ?? '#fff',
+          alpha: 0.85,
+          decay: 0.006 + Math.random() * 0.004,
+          gravity: 0.012,
+          kind: i % 3 === 0 ? 'streak' : 'dot',
+        })
+      }
+    }
     const reveal = (event: Event) => {
       const detail = (event as CustomEvent<{ rarity?: Rarity; x?: number; y?: number }>).detail
       if (!detail?.rarity) return
       const x = detail.x ?? window.innerWidth / 2
       const y = detail.y ?? window.innerHeight * 0.45
-      spray(detail.rarity, x, y, 1)
-      if (HIGH_GRADE.has(detail.rarity)) scheduleFlood(detail.rarity, x, y)
+      if (!HIGH_GRADE.has(detail.rarity)) {
+        spray(detail.rarity, x, y, 1)
+        return
+      }
+      const rarity = detail.rarity
+      const timer = window.setTimeout(() => {
+        waveTimers.delete(timer)
+        spray(rarity, x, y, 0.45)
+        scheduleFlood(rarity, x, y)
+      }, GRADE_HIT_MS)
+      waveTimers.add(timer)
     }
 
     resize()
     window.addEventListener('resize', resize)
     window.addEventListener('prism-burst', burst)
     window.addEventListener('grade-reveal', reveal)
+    window.addEventListener('grade-ember', ember)
     let frame = 0
     const loop = () => {
       dustCtx.clearRect(0, 0, dust.width, dust.height)
@@ -235,6 +273,7 @@ export function Atmosphere() {
       window.removeEventListener('resize', resize)
       window.removeEventListener('prism-burst', burst)
       window.removeEventListener('grade-reveal', reveal)
+      window.removeEventListener('grade-ember', ember)
     }
   }, [])
 

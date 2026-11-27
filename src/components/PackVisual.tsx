@@ -27,7 +27,7 @@ type PackVisualProps = {
   onSealKey?: (delta: number) => void
 }
 
-/** 纸封卡包。封口跟着撕开进度抬起，中间露出一条暗缝。 */
+/** 卡包外观。纸封撕开时只走封条，箔封开口随进度抬起。 */
 export function PackVisual({
   offerId,
   size = 'md',
@@ -49,13 +49,13 @@ export function PackVisual({
   const pose = tilt.pose
   const ratio = Math.max(0, Math.min(1, tear))
   const vars = {
-    '--tear-tx': `${ratio * 20}px`,
-    '--tear-ty': `${-ratio * 42}px`,
-    '--tear-rot': `${ratio * 8}deg`,
-    '--tear-skew': `${-ratio * 8}deg`,
+    '--tear-tx': `${paper ? 0 : ratio * 20}px`,
+    '--tear-ty': `${paper ? 0 : -ratio * 42}px`,
+    '--tear-rot': `${paper ? 0 : ratio * 8}deg`,
+    '--tear-skew': `${paper ? 0 : -ratio * 8}deg`,
     '--tear-stretch': `${1 + ratio * 0.08}`,
-    '--body-skew': `${-ratio * 1.4}deg`,
-    '--body-stretch': `${1 + ratio * 0.02}`,
+    '--body-skew': `${paper ? 0 : -ratio * 1.4}deg`,
+    '--body-stretch': `${paper ? 1 : 1 + ratio * 0.02}`,
     '--tear-open': `${ratio > 0 ? 8 + ratio * 16 : 0}px`,
     '--seam-opacity': `${Math.min(1, ratio * 2.4)}`,
     '--seam-pct': `${ratio * 100}%`,

@@ -31,6 +31,7 @@ type CardVisualProps = {
   flipped?: boolean
   isNew?: boolean
   still?: boolean
+  sweep?: boolean
   onFlip?: () => void
   onOpen?: () => void
 }
@@ -43,6 +44,7 @@ export function CardVisual({
   flipped = false,
   isNew = false,
   still = false,
+  sweep = false,
   onFlip,
   onOpen,
 }: CardVisualProps) {
@@ -51,9 +53,9 @@ export function CardVisual({
   const showFront = !flippable || flipped
   const [revealing, setRevealing] = useState(false)
 
-  /** 翻开后短时间挂上品级动效，时间到了再交回指针倾斜。 */
+  /** 普通和稀有翻开后短挂光环。高等级的光交给霸屏。 */
   useEffect(() => {
-    if (!flippable || !flipped) return
+    if (!flippable || !flipped || HIGH_GRADE.has(card.rarity)) return
     setRevealing(true)
     const timer = window.setTimeout(() => setRevealing(false), REVEAL_HOLD[card.rarity])
     return () => window.clearTimeout(timer)
@@ -103,6 +105,7 @@ export function CardVisual({
         <span className="leaf-grade">{RARITY_LABEL[card.rarity]}</span>
       </footer>
       <div className="card-glare" />
+      {sweep ? <i className={`card-foil card-foil-${card.rarity}`} aria-hidden /> : null}
     </div>
   )
 
