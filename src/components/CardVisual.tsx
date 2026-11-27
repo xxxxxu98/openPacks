@@ -18,9 +18,9 @@ const RANK: Record<Rarity, string> = {
 const REVEAL_HOLD: Record<Rarity, number> = {
   N: 480,
   R: 640,
-  SR: 1200,
-  SSR: 1600,
-  SECRET: 2000,
+  SR: 2100,
+  SSR: 2700,
+  SECRET: 3300,
 }
 const HIGH_GRADE: ReadonlySet<Rarity> = new Set(['SR', 'SSR', 'SECRET'])
 

@@ -93,6 +93,8 @@ class SoundEngine {
         this.tone(freq, 0.72, 'triangle', index * 0.06, 0.048)
       }
       this.tone(1568, 0.36, 'sine', 0.22, 0.026)
+      this.noiseBurst(0.32, 220, 3800, 0.06, 0.2)
+      this.tone(1318, 0.42, 'sine', 0.2, 0.03)
       return
     }
     this.drop(92, 0.45, 0.08)
@@ -102,6 +104,8 @@ class SoundEngine {
       this.tone(freq, 1.15, 'triangle', 0.08 + index * 0.09, 0.042)
       this.tone(freq * 1.01, 1.05, 'sine', 0.1 + index * 0.09, 0.016)
     }
+    this.noiseBurst(0.4, 160, 4800, 0.075, 0.22)
+    this.tone(2093, 0.5, 'sine', 0.24, 0.028)
   }
 
   coin() {
@@ -197,25 +201,26 @@ class SoundEngine {
     osc.stop(start + duration + 0.02)
   }
 
-  private noiseBurst(duration: number, from: number, to: number, peak: number) {
+  private noiseBurst(duration: number, from: number, to: number, peak: number, when = 0) {
     if (!this.master) return
     const ctx = this.context()
+    const start = ctx.currentTime + when
     const source = ctx.createBufferSource()
     source.buffer = this.noise()
     const filter = ctx.createBiquadFilter()
     filter.type = 'bandpass'
-    filter.frequency.setValueAtTime(from, ctx.currentTime)
-    filter.frequency.linearRampToValueAtTime(to, ctx.currentTime + duration)
+    filter.frequency.setValueAtTime(from, start)
+    filter.frequency.linearRampToValueAtTime(to, start + duration)
     filter.Q.value = 0.7
     const gain = ctx.createGain()
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(peak, ctx.currentTime + 0.02)
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration)
+    gain.gain.setValueAtTime(0.0001, start)
+    gain.gain.exponentialRampToValueAtTime(peak, start + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
     source.connect(filter)
     filter.connect(gain)
     gain.connect(this.master)
-    source.start()
-    source.stop(ctx.currentTime + duration + 0.02)
+    source.start(start)
+    source.stop(start + duration + 0.02)
   }
 
   private noise() {

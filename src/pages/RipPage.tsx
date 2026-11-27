@@ -3,9 +3,10 @@ import type { PointerEvent } from 'react'
 import { sound } from '../audio/soundEngine'
 import { CardInspect } from '../components/CardInspect'
 import { CardVisual } from '../components/CardVisual'
+import { GradeSpectacle } from '../components/GradeSpectacle'
 import { PackDetail } from '../components/PackDetail'
 import { PackVisual } from '../components/PackVisual'
-import { RARITY_LABEL, RARITY_RANK, getCard, getOffer, listOffers } from '../data/catalog'
+import { RARITY_LABEL, getCard, getOffer, listOffers } from '../data/catalog'
 import { bestRarity, rollPack } from '../data/pull'
 import {
   commitOpen,
@@ -19,13 +20,13 @@ import type { CardDef, DrawnCard, Rarity } from '../types/game'
 
 const TEAR_LIMIT = 0.78
 
-/** 全部翻开时，这一张翻完再等多久才翻下一张。高等级多留一拍。 */
+/** 全部翻开时，普通卡之间的间隔。高等级要等点掉蒙层再继续。 */
 const FLIP_GAP: Record<Rarity, number> = {
   N: 170,
   R: 220,
-  SR: 540,
-  SSR: 820,
-  SECRET: 1180,
+  SR: 240,
+  SSR: 240,
+  SECRET: 240,
 }
 
 const BURST_WAIT: Record<Rarity, number> = {
@@ -37,6 +38,15 @@ const BURST_WAIT: Record<Rarity, number> = {
 }
 
 type Phase = 'pick' | 'sealed' | 'burst' | 'reveal'
+
+type GradeFlash = {
+  id: number
+  rarity: Extract<Rarity, 'SR' | 'SSR' | 'SECRET'>
+  card: CardDef
+  isNew: boolean
+  x: number
+  y: number
+}
 
 type Ceremony = {
   phase: Phase
@@ -85,7 +95,7 @@ export function RipPage() {
   const [detailId, setDetailId] = useState<string | null>(null)
   const [packDetailId, setPackDetailId] = useState<string | null>(null)
   const [announce, setAnnounce] = useState('')
-  const [gradeHit, setGradeHit] = useState<Rarity | null>(null)
+  const [gradeHit, setGradeHit] = useState<GradeFlash | null>(null)
   const tearRef = useRef(0)
   const packIdRef = useRef<string | null>(ceremony.packId)
   const rollRef = useRef<CardDef[]>(ceremony.roll)
@@ -95,6 +105,7 @@ export function RipPage() {
   const raf = useRef(0)
   const burstTimer = useRef(0)
   const flipQueue = useRef<number[]>([])
+  const pendingFlips = useRef<DrawnCard[]>([])
   const gradeTimer = useRef(0)
   const gradeToken = useRef(0)
   const flippedRef = useRef<Record<string, boolean>>({})
@@ -107,6 +118,7 @@ export function RipPage() {
   const clearFlipQueue = () => {
     for (const id of flipQueue.current) window.clearTimeout(id)
     flipQueue.current = []
+    pendingFlips.current = []
   }
 
   const clearGrade = () => {
@@ -266,64 +278,85 @@ export function RipPage() {
     }, 560)
   }
 
-  /** 超稀有以上压暗背景并震一下，等级越高停得越久。 */
-  const hitGrade = (rarity: Rarity) => {
-    if (RARITY_RANK[rarity] < RARITY_RANK.SR) return
+  /** 队列里的下一张。高等级蒙层还开着时不往下走。 */
+  const scheduleNext = (delay: number) => {
+    const next = pendingFlips.current.shift()
+    if (!next) return
+    flipQueue.current.push(window.setTimeout(() => flipOne(next, true), delay))
+  }
+
+  /** 点掉蒙层后才收起霸屏，并接着翻队列里的下一张。 */
+  const closeGrade = () => {
+    gradeToken.current += 1
+    setGradeHit(null)
+    document.documentElement.classList.remove('is-screen-shaking')
+    delete document.documentElement.dataset.shake
+    scheduleNext(240)
+  }
+
+  /** 超稀有以上霸屏，震一下后停住，等点蒙层。 */
+  const hitGrade = (card: CardDef, isNew: boolean, x: number, y: number) => {
+    const rarity = card.rarity
+    if (rarity !== 'SR' && rarity !== 'SSR' && rarity !== 'SECRET') return
     const token = ++gradeToken.current
-    setGradeHit(rarity)
+    setGradeHit({ id: token, rarity, card, isNew, x, y })
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const root = document.documentElement
+    if (reduce) return
     root.classList.add('is-screen-shaking')
     root.dataset.shake = rarity === 'SECRET' ? 'hard' : rarity === 'SSR' ? 'mid' : 'soft'
-    if (rarity === 'SECRET') navigator.vibrate?.([18, 40, 28])
-    else if (rarity === 'SSR') navigator.vibrate?.(24)
-    else navigator.vibrate?.(12)
-    const hold = rarity === 'SECRET' ? 1500 : rarity === 'SSR' ? 1200 : 900
+    if (rarity === 'SECRET') navigator.vibrate?.([22, 36, 28, 40, 18])
+    else if (rarity === 'SSR') navigator.vibrate?.([18, 28, 16])
+    else navigator.vibrate?.(16)
+    const shakeMs = rarity === 'SECRET' ? 1050 : rarity === 'SSR' ? 780 : 500
     window.clearTimeout(gradeTimer.current)
     gradeTimer.current = window.setTimeout(() => {
       if (gradeToken.current !== token) return
-      setGradeHit(null)
       root.classList.remove('is-screen-shaking')
       delete root.dataset.shake
-    }, hold)
+    }, shakeMs)
   }
 
-  const flipOne = (item: DrawnCard) => {
-    if (flippedRef.current[item.instanceId]) return
-    flippedRef.current = { ...flippedRef.current, [item.instanceId]: true }
+  const flipOne = (item: DrawnCard, fromQueue = false) => {
     const card = getCard(item.cardId)
-    sound.flip(card.rarity)
-    const node = document.querySelector<HTMLElement>(`[data-instance="${CSS.escape(item.instanceId)}"]`)
-    const rect = node?.getBoundingClientRect()
-    window.dispatchEvent(
-      new CustomEvent('grade-reveal', {
-        detail: {
-          rarity: card.rarity,
-          x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
-          y: rect ? rect.top + rect.height * 0.42 : window.innerHeight * 0.46,
-        },
-      }),
-    )
-    hitGrade(card.rarity)
-    setAnnounce(`${RARITY_LABEL[card.rarity]}，${card.name}`)
-    setCeremony((prev) => ({
-      ...prev,
-      flipped: { ...prev.flipped, [item.instanceId]: true },
-    }))
+    const high = card.rarity === 'SR' || card.rarity === 'SSR' || card.rarity === 'SECRET'
+    const seen = Boolean(flippedRef.current[item.instanceId])
+    if (!seen) {
+      flippedRef.current = { ...flippedRef.current, [item.instanceId]: true }
+      sound.flip(card.rarity)
+      const node = document.querySelector<HTMLElement>(`[data-instance="${CSS.escape(item.instanceId)}"]`)
+      const rect = node?.getBoundingClientRect()
+      const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2
+      const y = rect ? rect.top + rect.height * 0.46 : window.innerHeight * 0.48
+      window.dispatchEvent(
+        new CustomEvent('grade-reveal', {
+          detail: {
+            rarity: card.rarity,
+            x: high ? window.innerWidth / 2 : x,
+            y: high ? window.innerHeight * 0.46 : y,
+          },
+        }),
+      )
+      if (high) hitGrade(card, item.isNew, x, y)
+      setAnnounce(`${RARITY_LABEL[card.rarity]}，${card.name}`)
+      setCeremony((prev) => ({
+        ...prev,
+        flipped: { ...prev.flipped, [item.instanceId]: true },
+      }))
+    }
+    if (!fromQueue || (high && !seen)) return
+    scheduleNext(FLIP_GAP[card.rarity])
   }
 
-  /** 从左到右逐张翻开，高等级翻开后多停一拍。 */
+  /** 从左到右逐张翻开。遇到高等级就停住，等蒙层被点掉。 */
   const flipAll = () => {
-    const pending = ceremony.drawn.some((item) => !flippedRef.current[item.instanceId])
-    if (!pending) return
+    const pending = ceremony.drawn.filter((item) => !flippedRef.current[item.instanceId])
+    if (pending.length === 0) return
     clearFlipQueue()
-    let wait = 0
-    for (const item of ceremony.drawn) {
-      if (flippedRef.current[item.instanceId]) continue
-      const rarity = getCard(item.cardId).rarity
-      const delay = wait
-      flipQueue.current.push(window.setTimeout(() => flipOne(item), delay))
-      wait += FLIP_GAP[rarity]
-    }
+    const [first, ...rest] = pending
+    if (!first) return
+    pendingFlips.current = rest
+    flipOne(first, true)
   }
 
   const detail = ceremony.drawn.find((item) => item.instanceId === detailId) ?? null
@@ -346,12 +379,15 @@ export function RipPage() {
         />
       )}
       {gradeHit && (
-        <>
-          <div className={`grade-flash grade-${gradeHit}`} aria-hidden />
-          <div className={`grade-callout callout-${gradeHit}`} aria-hidden>
-            <b>{RARITY_LABEL[gradeHit]}</b>
-          </div>
-        </>
+        <GradeSpectacle
+          key={gradeHit.id}
+          rarity={gradeHit.rarity}
+          card={gradeHit.card}
+          isNew={gradeHit.isNew}
+          x={gradeHit.x}
+          y={gradeHit.y}
+          onClose={closeGrade}
+        />
       )}
 
       {ceremony.phase === 'pick' && ownedPacks.length === 0 && (
