@@ -481,7 +481,7 @@ function shownTear(): number {
 
 // 把撕开进度交给三维桌子
 function paintTear(): void {
-  table?.setTear(shownTear());
+  table?.setTear(shownTear(), tearDir);
 }
 
 // 五张落定后点卡面进入近看

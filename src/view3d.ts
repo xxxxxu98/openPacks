@@ -582,10 +582,13 @@ export class OpenTable {
     return Math.abs(right.x - left.x) * width * 0.5;
   }
 
-  // 撕开进度带动封口掀起
-  setTear(amount: number): void {
+  // 裂口从手指拖动的那一侧变长
+  setTear(amount: number, dir = 1): void {
     this.flap.rotation.x = amount * 0.72;
     this.mouth.visible = amount > 0.08;
+    this.mouth.scale.x = amount;
+    const reach = (this.mouth.geometry as THREE.BoxGeometry).parameters.width / 2;
+    this.mouth.position.x = dir * reach * (1 - amount);
   }
 
   setCards(poses: CardPose[]): void {
