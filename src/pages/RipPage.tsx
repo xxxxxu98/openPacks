@@ -3,6 +3,7 @@ import type { PointerEvent } from 'react'
 import { sound } from '../audio/soundEngine'
 import { CardInspect } from '../components/CardInspect'
 import { CardVisual } from '../components/CardVisual'
+import { PackDetail } from '../components/PackDetail'
 import { PackVisual } from '../components/PackVisual'
 import { RARITY_LABEL, RARITY_RANK, getCard, getOffer, listOffers } from '../data/catalog'
 import { bestRarity, rollPack } from '../data/pull'
@@ -65,6 +66,7 @@ export function RipPage() {
   const state = useGameState()
   const [ceremony, setCeremony] = useState<Ceremony>(createOpening)
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [packDetailId, setPackDetailId] = useState<string | null>(null)
   const tearRef = useRef(0)
   const packIdRef = useRef<string | null>(ceremony.packId)
   const rollRef = useRef<CardDef[]>(ceremony.roll)
@@ -258,19 +260,23 @@ export function RipPage() {
         <div className="rip-center">
           <div className="pack-picker">
             {ownedPacks.map((pack) => (
-              <button
-                key={pack.id}
-                type="button"
-                className="pack-choice"
-                aria-label={`${pack.seriesName} ${pack.tierName} ×${state.inventory[pack.id]}`}
-                onClick={() => begin(pack.id)}
-              >
-                <PackVisual offerId={pack.id} seal="display" />
-                <strong>{pack.seriesName}</strong>
-                <em>
-                  {pack.tierName} ×{state.inventory[pack.id]}
-                </em>
-              </button>
+              <div key={pack.id} className="pack-choice">
+                <button
+                  type="button"
+                  className="pack-open"
+                  aria-label={`${pack.seriesName} ${pack.tierName} ×${state.inventory[pack.id]}`}
+                  onClick={() => begin(pack.id)}
+                >
+                  <PackVisual offerId={pack.id} seal="display" />
+                  <strong>{pack.seriesName}</strong>
+                  <em>
+                    {pack.tierName} ×{state.inventory[pack.id]}
+                  </em>
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => setPackDetailId(pack.id)}>
+                  查看详情
+                </button>
+              </div>
             ))}
           </div>
         </div>
@@ -348,6 +354,9 @@ export function RipPage() {
           <div className="glass-dock">
             {ceremony.phase === 'sealed' && (
               <>
+                <button type="button" className="btn btn-ghost" onClick={() => ceremony.packId && setPackDetailId(ceremony.packId)}>
+                  查看详情
+                </button>
                 <button type="button" className="btn btn-ghost" onClick={shake}>
                   摇包
                 </button>
@@ -389,6 +398,7 @@ export function RipPage() {
       {ceremony.phase === 'reveal' && detail && ceremony.flipped[detail.instanceId] && (
         <CardInspect card={getCard(detail.cardId)} isNew={detail.isNew} onClose={() => setDetailId(null)} />
       )}
+      {packDetailId && <PackDetail offerId={packDetailId} onClose={() => setPackDetailId(null)} />}
     </section>
   )
 }

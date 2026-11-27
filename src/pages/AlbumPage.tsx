@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { CardInspect } from '../components/CardInspect'
 import { CardVisual } from '../components/CardVisual'
-import { Motif } from '../components/Motif'
 import { CARDS, PACK_SERIES, cardsOfSeries, formatSerial, getCard, listOffers } from '../data/catalog'
 import { resetSave, useGameState } from '../store/useGameStore'
 import type { RarityFilter } from '../types/game'
@@ -32,7 +31,7 @@ export function AlbumPage() {
     <section className="page">
       <div className="section-head dex-head">
         <div className="dex-title">
-          <h1>奇幻档案</h1>
+          <h1>二十四节气</h1>
           <span className="progress-pill">
             {String(collected).padStart(width, '0')} / {pool.length}
           </span>
@@ -78,9 +77,6 @@ export function AlbumPage() {
           if (count <= 0) {
             return (
               <div key={card.id} className="slot-locked">
-                <div className="ghost">
-                  <Motif motif={card.motif} pupilX={0} pupilY={0} />
-                </div>
                 <strong>{formatSerial(card)}</strong>
                 <span>{card.rarity}</span>
               </div>
@@ -103,7 +99,11 @@ export function AlbumPage() {
       <div className="reset-row">
         {confirm ? (
           <>
-            <p>清空后库存和图鉴回到最初，并赠送 1 个{starter ? `${starter.seriesName} · ${starter.tierName}` : '卡包'}。</p>
+            <p>
+              {starter
+                ? `清空后库存和图鉴回到最初，并赠送 1 个${starter.seriesName} · ${starter.tierName}。`
+                : '清空后库存和图鉴回到最初。'}
+            </p>
             <button type="button" className="btn btn-danger" onClick={confirmReset}>
               确认清空
             </button>

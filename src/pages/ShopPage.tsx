@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { PackDetail } from '../components/PackDetail'
 import { PackVisual } from '../components/PackVisual'
 import { BASE_WEIGHTS, PACK_SERIES, RARITY_LABEL, RARITY_TONE, listOffers } from '../data/catalog'
 import { buyPack, getState, useGameState } from '../store/useGameStore'
@@ -13,10 +14,11 @@ type PurchaseReceipt = {
   tick: number
 }
 
-/** 商店按卡包类型分组，每一类在购买时再选低爆、中爆或高爆。 */
+/** 商店按卡包类型分组；没有在售卡包时只留空货架。 */
 export function ShopPage() {
   const state = useGameState()
   const [receipt, setReceipt] = useState<PurchaseReceipt | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(null)
 
   /** 买入一包，并把入手结果留在刚点的那张卡上。 */
   function purchase(id: string, name: string) {
@@ -39,9 +41,18 @@ export function ShopPage() {
       <div className="section-head">
         <div>
           <h1>卡包补给</h1>
-          <p>每种卡包单独一池。购买时按保底分低爆、中爆、高爆。</p>
+          <p>
+            {PACK_SERIES.length === 0
+              ? '货架空着。'
+              : '每种卡包单独一池。购买时按保底分低爆、中爆、高爆。'}
+          </p>
         </div>
       </div>
+      {PACK_SERIES.length === 0 && (
+        <div className="empty">
+          <p>还没有卡包。</p>
+        </div>
+      )}
       {PACK_SERIES.map((series) => {
         const offers = listOffers(series.id)
         if (offers.length === 0) return null
@@ -75,6 +86,9 @@ export function ShopPage() {
                     <h3>{offer.tierName}</h3>
                     <p className="blurb">{offer.blurb}</p>
                     <div className="shop-actions">
+                      <button type="button" className="btn btn-ghost" onClick={() => setDetailId(offer.id)}>
+                        查看详情
+                      </button>
                       <button type="button" className="btn btn-gold" onClick={() => purchase(offer.id, offer.tierName)}>
                         {bought ? '再买一包' : '购买'}
                       </button>
@@ -86,6 +100,7 @@ export function ShopPage() {
           </section>
         )
       })}
+      {detailId && <PackDetail offerId={detailId} onClose={() => setDetailId(null)} />}
     </section>
   )
 }

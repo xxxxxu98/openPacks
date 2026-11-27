@@ -16,17 +16,10 @@ export function Navbar() {
   return (
     <header className="topbar">
       <button type="button" className="brand" onClick={() => goTo('home')}>
-        <svg viewBox="0 0 32 32" aria-hidden>
-          <path d="M16 3C16 10.5 21.5 16 29 16C21.5 16 16 21.5 16 29C16 21.5 10.5 16 3 16C10.5 16 16 10.5 16 3Z" fill="url(#brandGrad)" />
-          <defs>
-            <linearGradient id="brandGrad" x1="3" y1="3" x2="29" y2="29">
-              <stop stopColor="#FDE047" />
-              <stop offset="0.5" stopColor="#38BDF8" />
-              <stop offset="1" stopColor="#F472B6" />
-            </linearGradient>
-          </defs>
-        </svg>
-        PRISM <small>// 01</small>
+        <span className="brand-seal" aria-hidden>
+          岁
+        </span>
+        节气 <small>廿四</small>
       </button>
       <nav className="nav-row" aria-label="页面">
         {LINKS.map((link) => (

@@ -16,6 +16,34 @@ export type MotifKind =
   | 'wraith'
   | 'crown'
 
+export type SeasonName = 'spring' | 'summer' | 'autumn' | 'winter'
+
+export type SolarScene =
+  | 'lichun'
+  | 'yushui'
+  | 'jingzhe'
+  | 'chunfen'
+  | 'qingming'
+  | 'guyu'
+  | 'lixia'
+  | 'xiaoman'
+  | 'mangzhong'
+  | 'xiazhi'
+  | 'xiaoshu'
+  | 'dashu'
+  | 'liqiu'
+  | 'chushu'
+  | 'bailu'
+  | 'qiufen'
+  | 'hanlu'
+  | 'shuangjiang'
+  | 'lidong'
+  | 'xiaoxue'
+  | 'daxue'
+  | 'dongzhi'
+  | 'xiaohan'
+  | 'dahan'
+
 export type RateTier = 'low' | 'mid' | 'high'
 
 export type PackCrest = 'planet' | 'torus' | 'plus'
@@ -32,7 +60,11 @@ export interface CardDef {
   no: number
   name: string
   rarity: Rarity
-  motif: MotifKind
+  season: SeasonName
+  scene: SolarScene
+  phenology: readonly [string, string, string]
+  span: string
+  verse: string
   flavor: string
 }
 

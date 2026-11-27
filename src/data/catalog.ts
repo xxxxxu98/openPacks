@@ -6,6 +6,7 @@ import type {
   RateTierDef,
   Rarity,
 } from '../types/game'
+import { SOLAR_CARDS } from './solarTerms'
 
 export const SUPPLY_COINS = 500
 export const START_COINS = 200
@@ -52,125 +53,16 @@ export const BASE_WEIGHTS: Record<Rarity, number> = {
   SECRET: 1,
 }
 
-export const CARDS: readonly CardDef[] = [
-  {
-    id: 'c01',
-    seriesId: 'core',
-    no: 1,
-    name: '灰烬萤',
-    rarity: 'N',
-    motif: 'moth',
-    flavor: '灯灭之后，它仍沿着金缝飞行。',
-  },
-  {
-    id: 'c02',
-    seriesId: 'core',
-    no: 2,
-    name: '潮贝',
-    rarity: 'N',
-    motif: 'shell',
-    flavor: '壳内封着一口未退的潮。',
-  },
-  {
-    id: 'c03',
-    seriesId: 'core',
-    no: 3,
-    name: '霜铃',
-    rarity: 'N',
-    motif: 'bell',
-    flavor: '摇响时，空气会结一层薄霜。',
-  },
-  {
-    id: 'c04',
-    seriesId: 'core',
-    no: 4,
-    name: '月鹿',
-    rarity: 'R',
-    motif: 'stag',
-    flavor: '角尖挂着没圆的月亮。',
-  },
-  {
-    id: 'c05',
-    seriesId: 'core',
-    no: 5,
-    name: '晶狐',
-    rarity: 'R',
-    motif: 'fox',
-    flavor: '每一步都在地上留下棱镜。',
-  },
-  {
-    id: 'c06',
-    seriesId: 'core',
-    no: 6,
-    name: '岚骑',
-    rarity: 'R',
-    motif: 'knight',
-    flavor: '甲叶里藏着没有停的雨。',
-  },
-  {
-    id: 'c07',
-    seriesId: 'core',
-    no: 7,
-    name: '烬凤',
-    rarity: 'SR',
-    motif: 'phoenix',
-    flavor: '烧完一次，名字就亮一档。',
-  },
-  {
-    id: 'c08',
-    seriesId: 'core',
-    no: 8,
-    name: '金鸮',
-    rarity: 'SR',
-    motif: 'owl',
-    flavor: '它看见的夜晚都镀过金。',
-  },
-  {
-    id: 'c09',
-    seriesId: 'core',
-    no: 9,
-    name: '日狮',
-    rarity: 'SR',
-    motif: 'lion',
-    flavor: '鬃毛是收不拢的正午。',
-  },
-  {
-    id: 'c10',
-    seriesId: 'core',
-    no: 10,
-    name: '虚瞳',
-    rarity: 'SSR',
-    motif: 'eye',
-    flavor: '被它注视的光，会忘记来处。',
-  },
-  {
-    id: 'c11',
-    seriesId: 'core',
-    no: 11,
-    name: '镜魇',
-    rarity: 'SSR',
-    motif: 'wraith',
-    flavor: '你先看见它，还是它先看见你。',
-  },
-  {
-    id: 'c12',
-    seriesId: 'core',
-    no: 12,
-    name: '蚀冠',
-    rarity: 'SECRET',
-    motif: 'crown',
-    flavor: '冠沿压住太阳的时候，卡面才会全息。',
-  },
-]
+export const CARDS: readonly CardDef[] = SOLAR_CARDS
 
-/** 一种卡包对应一套卡池。新增时在这里加一条，卡牌的 seriesId 填同一个 id。 */
+/** 在售卡包。新增时加一条，卡牌的 seriesId 填同一个 id。 */
 export const PACK_SERIES: readonly PackSeries[] = [
   {
-    id: 'core',
-    name: '奇幻闪卡',
-    code: 'PRISM',
-    blurb: '五张都从这一套卡池里开。',
-    accent: '#e4c27a',
+    id: 'solar',
+    name: '二十四节气',
+    code: '廿四',
+    blurb: '从二十四张里开出五张。',
+    accent: '#8e3a38',
     crest: 'planet',
   },
 ]

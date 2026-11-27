@@ -2,7 +2,6 @@ import type { CSSProperties, KeyboardEvent, PointerEvent } from 'react'
 import { usePointerTilt } from '../hooks/usePointerTilt'
 import type { Rarity } from '../types/game'
 import { getOffer } from '../data/catalog'
-import { PackCrest } from './Motif'
 
 const PEEK: Partial<Record<Rarity, string>> = {
   N: 'active-N',
@@ -28,7 +27,7 @@ type PackVisualProps = {
   onSealKey?: (delta: number) => void
 }
 
-/** 哑光黑压纹卡包。封口跟着撕开进度抬起，中间露出一条暗缝。 */
+/** 纸封卡包。封口跟着撕开进度抬起，中间露出一条暗缝。 */
 export function PackVisual({
   offerId,
   size = 'md',
@@ -46,6 +45,7 @@ export function PackVisual({
 }: PackVisualProps) {
   const tilt = usePointerTilt<HTMLDivElement>()
   const pack = getOffer(offerId)
+  const paper = pack.seriesId === 'solar'
   const pose = tilt.pose
   const ratio = Math.max(0, Math.min(1, tear))
   const vars = {
@@ -76,8 +76,8 @@ export function PackVisual({
 
   const sealBody = (
     <>
-      <span>◄ TEAR SEAL</span>
-      <span>{seal === 'live' ? '划开封口 ►' : pack.code}</span>
+      <span>封缄</span>
+      <span>{seal === 'live' ? '向右划开' : pack.code}</span>
       <i className="tear-progress-bar" />
     </>
   )
@@ -85,7 +85,7 @@ export function PackVisual({
   return (
     <div className={`pack-visual${float ? ' is-float' : ''}`} data-size={size}>
       <div
-        className={`foil-pack-wrapper pack-theme-${pack.theme}${tilt.resting ? '' : ' is-tilting'}${shaking ? ' is-shaking' : ''}`}
+        className={`foil-pack-wrapper${paper ? ' is-paper' : ''} pack-theme-${pack.theme}${tilt.resting ? '' : ' is-tilting'}${shaking ? ' is-shaking' : ''}`}
         ref={tilt.ref}
         onPointerMove={tilt.onPointerMove}
         onPointerLeave={tilt.onPointerLeave}
@@ -135,18 +135,16 @@ export function PackVisual({
           <div className="foil-sheen" />
           <div className="pack-brand">
             <span className="gold-foil-text">{pack.code}</span>
-            <span className="pack-badge">
-              {pack.cardCount} CARDS
-              <br />
-              {pack.edition}
-            </span>
+            <span className="pack-badge">{pack.edition}</span>
           </div>
-          <div className="pack-mascot">
-            <PackCrest kind={pack.crest} pupilX={pose.pupilX} pupilY={pose.pupilY} />
+          <div className="pack-seal" aria-hidden>
+            <span>岁</span>
           </div>
           <div className="pack-edition">
             <strong>{pack.seriesName}</strong>
-            <span>OPTICAL FOIL</span>
+            <span>
+              {pack.cardCount} 张 · {pack.edition}
+            </span>
           </div>
           <div className="pack-crimp-bottom" />
         </div>
