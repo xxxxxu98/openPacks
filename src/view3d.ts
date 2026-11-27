@@ -257,7 +257,7 @@ function foilSide(): THREE.MeshStandardMaterial {
 
 // 拼一块圆角卡，正面贴画，侧边是浅箔
 export function createCardMesh(): THREE.Mesh {
-  const front = new THREE.MeshStandardMaterial({ color: 0xf3eee6, roughness: 0.46, metalness: 0.02 });
+  const front = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.46, metalness: 0.02 });
   const back = new THREE.MeshStandardMaterial({ map: backTexture(), roughness: 0.42, metalness: 0.34 });
   const edge = new THREE.MeshStandardMaterial({
     color: 0xf4f1ff,
