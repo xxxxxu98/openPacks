@@ -1,8 +1,13 @@
 {
-  "name": "simplemkt",
+  "name": "open-packs",
   "private": true,
   "version": "0.1.0",
+  "description": "二十四节气拆卡收藏，在浏览器里撕开卡包。",
+  "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

@@ -20,7 +20,7 @@ function clampZoom(value: number) {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, stepped))
 }
 
-/** 放大检视一张卡，可缩放、平面旋转，并拖动调整倾斜。 */
+/** 放大检视一张卡。打开时略侧过来，能看见薄薄的卡边；可缩放、旋转，拖动改倾斜。 */
 export function CardInspect({ card, isNew = false, onClose }: CardInspectProps) {
   const owned = useGameState().owned[card.id] ?? 0
   const closeRef = useRef<HTMLButtonElement>(null)
@@ -29,8 +29,8 @@ export function CardInspect({ card, isNew = false, onClose }: CardInspectProps) 
   const drag = useRef<{ x: number; y: number; tiltX: number; tiltY: number } | null>(null)
   const [zoom, setZoom] = useState(1)
   const [turn, setTurn] = useState(0)
-  const [tiltX, setTiltX] = useState(0)
-  const [tiltY, setTiltY] = useState(0)
+  const [tiltX, setTiltX] = useState(14)
+  const [tiltY, setTiltY] = useState(-32)
   const [dragging, setDragging] = useState(false)
 
   onCloseRef.current = onClose
@@ -118,7 +118,7 @@ export function CardInspect({ card, isNew = false, onClose }: CardInspectProps) 
                 transform: `scale(${zoom}) rotateX(${tiltX}deg) rotateY(${tiltY}deg) rotate(${turn}deg)`,
               }}
             >
-              <CardVisual card={card} size="lg" still isNew={isNew} />
+              <CardVisual card={card} size="lg" still thick isNew={isNew} />
             </div>
           </div>
         </div>

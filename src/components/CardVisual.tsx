@@ -31,9 +31,54 @@ type CardVisualProps = {
   flipped?: boolean
   isNew?: boolean
   still?: boolean
+  thick?: boolean
   sweep?: boolean
   onFlip?: () => void
   onOpen?: () => void
+}
+
+const BOARD_STEPS = 5
+const BOARD_ANCHORS = [
+  { name: 'tr', x: '100% - var(--card-radius)', y: 'var(--card-radius)', start: -90 },
+  { name: 'br', x: '100% - var(--card-radius)', y: '100% - var(--card-radius)', start: 0 },
+  { name: 'bl', x: 'var(--card-radius)', y: '100% - var(--card-radius)', start: 90 },
+  { name: 'tl', x: 'var(--card-radius)', y: 'var(--card-radius)', start: 180 },
+] as const
+
+const BOARD_CORNERS = BOARD_ANCHORS.flatMap((anchor) =>
+  Array.from({ length: BOARD_STEPS }, (_, index) => {
+    const phi = anchor.start + ((index + 0.5) * 90) / BOARD_STEPS
+    const rad = (phi * Math.PI) / 180
+    return {
+      key: `${anchor.name}-${index}`,
+      left: `calc(${anchor.x} + ${Math.cos(rad).toFixed(4)} * var(--card-radius) - var(--corner-span) / 2)`,
+      top: `calc(${anchor.y} + ${Math.sin(rad).toFixed(4)} * var(--card-radius) - var(--card-depth) / 2)`,
+      turn: phi - 90,
+    }
+  }),
+)
+
+/** 给检视中的卡补上银行卡那样的薄边。 */
+function CardBoard() {
+  return (
+    <div className="card-board" aria-hidden>
+      <i className="card-edge edge-top" />
+      <i className="card-edge edge-right" />
+      <i className="card-edge edge-bottom" />
+      <i className="card-edge edge-left" />
+      {BOARD_CORNERS.map((piece) => (
+        <i
+          key={piece.key}
+          className="card-corner"
+          style={{
+            left: piece.left,
+            top: piece.top,
+            transform: `rotateZ(${piece.turn}deg) rotateX(90deg)`,
+          }}
+        />
+      ))}
+    </div>
+  )
 }
 
 /** 节气册页。正面写季节、墨画、三候和题款，背面是一枚岁印。 */
@@ -44,6 +89,7 @@ export function CardVisual({
   flipped = false,
   isNew = false,
   still = false,
+  thick = false,
   sweep = false,
   onFlip,
   onOpen,
@@ -110,7 +156,12 @@ export function CardVisual({
   )
 
   return (
-    <div className={`card-visual${still ? ' is-steady' : ''}`} data-size={size} data-rarity={card.rarity}>
+    <div
+      className={`card-visual${still ? ' is-steady' : ''}${thick ? ' is-thick' : ''}`}
+      data-size={size}
+      data-rarity={card.rarity}
+      data-season={card.season}
+    >
       <div className={`card-stage${revealing ? ` is-revealing reveal-${card.rarity}` : ''}`}>
       {revealing && (
         <div className="reveal-aura" aria-hidden>
@@ -135,6 +186,7 @@ export function CardVisual({
         onPointerMove={tilt.onPointerMove}
         onPointerLeave={tilt.onPointerLeave}
       >
+        {thick && <CardBoard />}
         {flippable && (
           <button
             type="button"
