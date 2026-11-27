@@ -1,7 +1,7 @@
 import "./styles.css";
 import { PACKS } from "./catalog";
 import { packArtReady, type PackDef } from "./art";
-import { rollFive, withPreviewGold, type CardDef, type Rarity } from "./odds";
+import { rollFive, withPreviewGold, type Rarity } from "./odds";
 import { isOpened, tearProgress } from "./tear";
 import {
   buyPack,
@@ -13,6 +13,14 @@ import {
   type SaveData,
 } from "./save";
 import { advance, initialReveal, PAUSE, type RevealState } from "./reveal";
+import { mountCardViewer, OpenTable, type CardPose } from "./view3d";
+import { renderHome } from "./ui/home";
+import { renderShop, type ShopPack } from "./ui/shop";
+import { renderDex } from "./ui/dex";
+import { renderOpen, type OpenPack } from "./ui/open-view";
+import { renderContents, renderInspect } from "./ui/overlay";
+import { cardLayers, settledLayers } from "./ui/light";
+import { openPrompt } from "./ui/open";
 
 const SAVE_KEY = "open-packs-save";
 const FLOAT_MS = 800;
@@ -28,21 +36,7 @@ const RARITY_TABS: { id: Rarity; label: string }[] = [
   { id: "common", label: "普通" },
 ];
 
-const SERIES_TINT: Record<string, string> = {
-  danqing: "#8a6244",
-  suihua: "#6d8a62",
-  shierchen: "#9a4038",
-  shanhai: "#3e6d6a",
-  weimian: "#6d5b7a",
-  tieyi: "#5a616c",
-  hongqu: "#8d3a48",
-  yandi: "#4c6a7e",
-  xuanhai: "#1b4c5c",
-  qunfang: "#a15a74",
-};
-
 type Route = "home" | "shop" | "open" | "dex";
-type ShopTab = "pack" | "cover" | "sleeve" | "cloth";
 type CosmeticKind = "cover" | "sleeve" | "cloth";
 type OpenMode =
   | { kind: "pick" }
@@ -57,40 +51,23 @@ if (!app) throw new Error("缺少 #app");
 let save = loadSave(localStorage.getItem(SAVE_KEY));
 let artFiles: Set<string> | null = null;
 let route: Route = "home";
-let shopTab: ShopTab = "pack";
-let dexSeries = PACKS[0].seriesId;
-let dexPack = PACKS[0].id;
 let dexRarity: Rarity = "gold";
+let dexPackId = PACKS[0].id;
+let selectedShopId: string | null = null;
+let cosmeticKind: CosmeticKind | null = null;
+let selectedOpenId: string | null = null;
 let openMode: OpenMode = { kind: "pick" };
 let tear = 0;
 let tearDir: 1 | -1 = 1;
 let drag: { pointerId: number; originX: number } | null = null;
 let retract: { from: number; started: number } | null = null;
-let landedCount = -1;
-let floatIndex = -1;
 let lastTick = 0;
 
 let stageEl: HTMLElement | null = null;
-let bagEl: HTMLElement | null = null;
-let crimpEl: HTMLElement | null = null;
-let ripEl: HTMLElement | null = null;
-let gapEl: HTMLElement | null = null;
-let foilEl: HTMLElement | null = null;
-let landedEl: HTMLElement | null = null;
-let floaterEl: HTMLElement | null = null;
-let floaterInner: HTMLElement | null = null;
 let nextBtn: HTMLButtonElement | null = null;
-
-function el<K extends keyof HTMLElementTagNameMap>(
-  tag: K,
-  className?: string,
-  text?: string,
-): HTMLElementTagNameMap[K] {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
-}
+let table: OpenTable | null = null;
+let inspectStop: (() => void) | null = null;
+const stop3d: Array<() => void> = [];
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
@@ -158,22 +135,6 @@ function packById(id: string): PackDef | undefined {
   return PACKS.find((pack) => pack.id === id);
 }
 
-// 按系列收集图已经齐的卡包
-function groupsForSale(files: Set<string>): { seriesName: string; packs: PackDef[] }[] {
-  const order: string[] = [];
-  const grouped = new Map<string, PackDef[]>();
-  for (const pack of PACKS) {
-    if (!packArtReady(pack, files)) continue;
-    const list = grouped.get(pack.seriesName);
-    if (list) list.push(pack);
-    else {
-      grouped.set(pack.seriesName, [pack]);
-      order.push(pack.seriesName);
-    }
-  }
-  return order.map((seriesName) => ({ seriesName, packs: grouped.get(seriesName) ?? [] }));
-}
-
 // 只留下还有袋子并且图齐的卡包
 function heldReadyPacks(files: Set<string>): PackDef[] {
   return PACKS.filter((pack) => (save.packs[pack.id] ?? 0) > 0 && packArtReady(pack, files));
@@ -183,14 +144,6 @@ function heldReadyPacks(files: Set<string>): PackDef[] {
 function rarityOf(packId: string, cardId: string): Rarity {
   const card = packById(packId)?.cards.find((item) => item.id === cardId);
   return card?.rarity ?? "common";
-}
-
-// 给开局就有的装饰起页面上的名字
-function cosmeticName(kind: CosmeticKind, id: string): string {
-  if (kind === "sleeve" && id === "plain") return "无卡套";
-  if (kind === "cover" && id === "default") return "默认封面";
-  if (kind === "cloth" && id === "default") return "默认桌布";
-  return id;
 }
 
 // 这张卡落到桌上的时刻
@@ -241,319 +194,205 @@ function syncOpenFromSave(): void {
 
 function clearStageRefs(): void {
   stageEl = null;
-  bagEl = null;
-  crimpEl = null;
-  ripEl = null;
-  gapEl = null;
-  foilEl = null;
-  landedEl = null;
-  floaterEl = null;
-  floaterInner = null;
   nextBtn = null;
-  landedCount = -1;
-  floatIndex = -1;
 }
 
-function homeLink(): HTMLAnchorElement {
-  const link = el("a", "home-link", "回首页");
-  link.href = "#/";
-  return link;
+// 把地址改回首页
+function goHome(): void {
+  location.hash = "#/";
 }
 
-function coinMark(): HTMLParagraphElement {
-  const coin = el("p", "coin", "∞");
-  coin.setAttribute("aria-label", "金币");
-  return coin;
+// 首页优先摆手里图齐的第一袋，否则用目录里第一只齐图的包
+function homeCoverUrl(): string | null {
+  const files = artFiles;
+  if (!files) return null;
+  const featured = heldReadyPacks(files)[0] ?? PACKS.find((pack) => packArtReady(pack, files));
+  return featured ? coverUrl(featured.id) : null;
 }
 
-// 按当前页面重画
-function renderPage(): void {
-  closeLarge();
-  clearStageRefs();
-  app!.replaceChildren();
-  if (route === "home") renderHome();
-  else if (route === "shop") renderShop();
-  else if (route === "dex") renderDex();
-  else renderOpen();
+// 商店只上架图已经齐的卡包
+function shopPacks(): ShopPack[] {
+  const files = artFiles;
+  if (!files) return [];
+  return PACKS.filter((pack) => packArtReady(pack, files)).map((pack) => ({
+    id: pack.id,
+    name: pack.name,
+    seriesName: pack.seriesName,
+    held: save.packs[pack.id] ?? 0,
+    coverUrl: coverUrl(pack.id),
+  }));
 }
 
-// 首页画出袋子总数、无限金币和三个入口
-function renderHome(): void {
-  const page = el("main", "home");
-  page.append(el("p", "eyebrow", "银箔袋"));
-  const total = el("p", "total");
-  total.append(el("span", "total-num", String(bagTotal(save))));
-  total.append(el("span", "total-unit", "袋"));
-  const nav = el("nav", "entries");
-  for (const [href, label] of [["#/shop", "商店"], ["#/open", "拆卡"], ["#/dex", "图鉴"]] as const) {
-    const link = el("a", "entry", label);
-    link.href = href;
-    nav.append(link);
-  }
-  page.append(total, coinMark(), nav);
-  app!.append(page);
+// 开局就有的装饰，标出当前装上的那一个
+function shopCosmetics(): { kind: CosmeticKind; id: string; on: boolean }[] {
+  const kinds: CosmeticKind[] = ["cover", "sleeve", "cloth"];
+  return kinds.flatMap((kind) => STARTER.cosmetics[kind].map((id) => ({
+    kind,
+    id,
+    on: save.equipped[kind] === id,
+  })));
 }
 
-// 商店按页签列出图齐的卡包，以及开局就有的装饰
-function renderShop(): void {
-  const page = el("main", "page");
-  const bar = el("header", "topbar");
-  bar.append(homeLink(), coinMark());
-  const sheet = el("div", "sheet");
-  const tabs = el("div", "tabs");
-  const tabItems = [
-    ["pack", "卡包"],
-    ["cover", "封面"],
-    ["sleeve", "卡套"],
-    ["cloth", "桌布"],
-  ] as const;
-  for (const [id, label] of tabItems) {
-    const button = el("button", shopTab === id ? "on" : "", label);
-    button.type = "button";
-    button.dataset.shopTab = id;
-    tabs.append(button);
-  }
-  sheet.append(tabs);
-  if (shopTab === "pack") sheet.append(packCatalog());
-  else sheet.append(cosmeticList(shopTab));
-  page.append(bar, sheet);
-  app!.append(page);
+// 手里有袋子，但这包的图还不齐
+function hasUnreadyHeld(): boolean {
+  const files = artFiles;
+  if (!files) return false;
+  return PACKS.some((pack) => (save.packs[pack.id] ?? 0) > 0 && !packArtReady(pack, files));
 }
 
-function packCatalog(): HTMLElement {
-  const list = el("div", "pack-groups");
-  list.dataset.packList = "1";
-  if (!artFiles) return list;
-  for (const group of groupsForSale(artFiles)) {
-    list.append(el("h2", "series-name", group.seriesName));
-    for (const pack of group.packs) {
-      const row = el("div", "sale");
-      row.dataset.pack = pack.id;
-      row.append(el("span", "sale-name", pack.name));
-      row.append(el("span", "sale-own", `持有 ${save.packs[pack.id] ?? 0}`));
-      const button = el("button", "buy", "买一袋");
-      button.type = "button";
-      button.dataset.buy = pack.id;
-      row.append(button);
-      list.append(row);
-    }
-  }
-  return list;
+// 拆卡台只摆手里且图齐的袋子
+function heldPacks(): OpenPack[] {
+  const files = artFiles;
+  if (!files) return [];
+  return heldReadyPacks(files).map((pack) => ({
+    id: pack.id,
+    name: pack.name,
+    held: save.packs[pack.id] ?? 0,
+    coverUrl: coverUrl(pack.id),
+  }));
 }
 
-function cosmeticList(kind: CosmeticKind): HTMLElement {
-  const list = el("div", "cosmetic-list");
-  for (const id of STARTER.cosmetics[kind]) {
-    const button = el("button", save.equipped[kind] === id ? "cosmetic on" : "cosmetic");
-    button.type = "button";
-    button.dataset.equipKind = kind;
-    button.dataset.equipId = id;
-    button.append(el("span", "", cosmeticName(kind, id)));
-    if (save.equipped[kind] === id) button.append(el("span", "using", "使用中"));
-    list.append(button);
-  }
-  return list;
+function selectShopPack(id: string): void {
+  selectedShopId = id;
+  renderPage();
 }
 
-// 图鉴先选系列和卡包，再按等级从高到低分格
-function renderDex(): void {
-  const page = el("main", "page");
-  const bar = el("header", "topbar");
-  bar.append(homeLink(), el("h1", "top-title", "图鉴"));
-  const sheet = el("div", "sheet");
-  const seriesRow = el("div", "chips");
-  const seen = new Set<string>();
-  for (const pack of PACKS) {
-    if (seen.has(pack.seriesId)) continue;
-    seen.add(pack.seriesId);
-    const button = el("button", pack.seriesId === dexSeries ? "chip on" : "chip", pack.seriesName);
-    button.type = "button";
-    button.dataset.series = pack.seriesId;
-    seriesRow.append(button);
-  }
-  const packs = PACKS.filter((pack) => pack.seriesId === dexSeries);
-  const current = packs.find((pack) => pack.id === dexPack) ?? packs[0];
-  if (current) dexPack = current.id;
-  const packRow = el("div", "chips");
-  for (const pack of packs) {
-    const button = el("button", pack.id === dexPack ? "chip on" : "chip", pack.name);
-    button.type = "button";
-    button.dataset.dexPack = pack.id;
-    packRow.append(button);
-  }
-  const rarityRow = el("div", "chips");
-  for (const tab of RARITY_TABS) {
-    const button = el("button", tab.id === dexRarity ? "chip on" : "chip", tab.label);
-    button.type = "button";
-    button.dataset.rarity = tab.id;
-    rarityRow.append(button);
-  }
-  const grid = el("div", "dex-grid");
-  if (current) {
-    for (const card of current.cards) {
-      if (card.rarity !== dexRarity) continue;
-      grid.append(dexSlot(current, card));
-    }
-  }
-  sheet.append(seriesRow, packRow, rarityRow, grid);
-  page.append(bar, sheet);
-  app!.append(page);
+function selectCosmeticKind(kind: CosmeticKind): void {
+  cosmeticKind = kind;
+  renderPage();
 }
 
-function dexSlot(pack: PackDef, card: CardDef): HTMLElement {
-  const owned = save.owned[card.id] ?? 0;
-  const slot = el("div", owned > 0 ? "slot owned" : "slot unowned");
-  slot.style.setProperty("--tint", SERIES_TINT[pack.seriesId] ?? "#6a5a48");
-  if (owned <= 0) {
-    slot.setAttribute("aria-label", "未获得");
-    slot.append(silhouette());
-    return slot;
-  }
-  const rel = `cards/${pack.id}/${card.id}.webp`;
-  if (artFiles?.has(rel)) {
-    const img = el("img", "slot-img");
-    img.src = `/${rel}`;
-    img.alt = "";
-    slot.append(img);
-  }
-  slot.append(el("p", "slot-name", card.name));
-  slot.append(el("span", "slot-count", String(owned)));
-  return slot;
+// 打开商店里这一包的清单
+function showShopContents(id: string): void {
+  selectedShopId = id;
+  renderPage();
+  openPackContents(id);
 }
 
-function silhouette(): SVGSVGElement {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 80 120");
-  svg.setAttribute("class", "silhouette");
-  svg.setAttribute("aria-hidden", "true");
-  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  path.setAttribute("fill", "currentColor");
-  path.setAttribute("d", "M40 16c9 0 15 7 15 16S49 48 40 48 25 41 25 32 31 16 40 16zM20 56c5-9 13-13 20-13s15 4 20 13l9 50H11L20 56z");
-  svg.append(path);
-  return svg;
+function selectOpenPack(id: string): void {
+  selectedOpenId = id;
+  renderPage();
 }
 
-// 拆卡页只放可撕的袋子；有未完成的一包就接着演
-function renderOpen(): void {
-  const page = el("main", "open");
-  const bar = el("header", "topbar");
-  const title = openTitle();
-  bar.append(homeLink(), el("h1", "top-title", title));
-  page.append(bar);
-  if (openMode.kind === "pick") page.append(pickList());
-  else page.append(stageView());
-  const foot = el("div", "open-foot");
-  if (openMode.kind === "sealed") foot.append(el("p", "hint", "按住撕口，左右撕开"));
-  if (openMode.kind === "show") {
-    nextBtn = el("button", "next", "下一包");
-    nextBtn.type = "button";
-    nextBtn.dataset.next = "1";
-    nextBtn.hidden = openMode.reveal.phase !== "done";
-    foot.append(nextBtn);
+// 图鉴一次只摊开当前包的一个稀有度
+function mountDex(): void {
+  const pack = packById(dexPackId) ?? PACKS[0];
+  renderDex(app!, {
+    packs: PACKS.map((item) => ({ id: item.id, name: item.name })),
+    packId: pack.id,
+    rarity: dexRarity,
+    cards: pack.cards.filter((card) => card.rarity === dexRarity).map((card) => ({
+      id: card.id,
+      name: card.name,
+      owned: save.owned[card.id] ?? 0,
+      url: cardUrl(pack.id, card.id),
+    })),
+    onHome: goHome,
+    onPack: (id) => {
+      dexPackId = id;
+      renderPage();
+    },
+    onRarity: (rarity) => {
+      dexRarity = rarity;
+      renderPage();
+    },
+    onInspect: (id) => {
+      // 没拆到的卡不进入近看
+      if ((save.owned[id] ?? 0) <= 0) return;
+      openInspect(pack.id, id);
+    },
+  });
+}
+
+// 选包时摆手里的袋子，撕和播时把舞台交给三维桌子
+function mountOpenPage(): void {
+  const files = artFiles;
+  const mount = renderOpen(app!, {
+    mode: openMode.kind,
+    packs: heldPacks(),
+    selectedId: selectedOpenId,
+    prompt: openPrompt(
+      openMode.kind,
+      openMode.kind === "show" && openMode.reveal.phase === "done",
+      files ? heldReadyPacks(files).length : 0,
+      hasUnreadyHeld(),
+    ),
+    onHome: goHome,
+    onSelect: selectOpenPack,
+    onTear: choosePack,
+    onContents: openPackContents,
+    onNext: finishThisPack,
+  });
+  stop3d.push(mount.stop);
+  nextBtn = mount.nextButton;
+  if ((openMode.kind === "sealed" || openMode.kind === "show") && mount.stageHost) {
+    stageEl = mount.stageHost;
+    table = new OpenTable(mount.stageHost);
+    const packId = facingPackId();
+    if (packId) table.setCover(coverUrl(packId));
+    mount.stageHost.addEventListener("click", onStageClick);
   }
-  if (openMode.kind === "bare") {
-    const shop = el("a", "to-shop", "去商店");
-    shop.href = "#/shop";
-    foot.append(shop);
-  }
-  page.append(foot);
-  app!.append(page);
   if (openMode.kind === "sealed" || openMode.kind === "show") {
-    placeLayers();
     paintTear();
     if (openMode.kind === "show") paintShow();
   }
 }
 
-function openTitle(): string {
-  if (openMode.kind === "sealed" || openMode.kind === "bare") return packById(openMode.packId)?.name ?? "拆卡";
-  if (openMode.kind === "show" && save.current) return packById(save.current.packId)?.name ?? "拆卡";
-  return "拆卡";
-}
-
-function pickList(): HTMLElement {
-  const wrap = el("div", "sheet");
-  if (!artFiles) return wrap;
-  const ready = heldReadyPacks(artFiles);
-  if (ready.length === 0) {
-    const holding = PACKS.some((pack) => (save.packs[pack.id] ?? 0) > 0);
-    wrap.append(el("p", holding ? "missing-art" : "quiet", holding ? "图还没齐" : "没有可拆的袋子"));
-    if (!holding) {
-      const shop = el("a", "to-shop", "去商店");
-      shop.href = "#/shop";
-      wrap.append(shop);
-    }
-    return wrap;
+// 按当前页面重画
+function renderPage(): void {
+  closeInspect();
+  closeContents();
+  for (const stop of stop3d) stop();
+  stop3d.length = 0;
+  table?.dispose();
+  table = null;
+  clearStageRefs();
+  app!.replaceChildren();
+  if (route === "home") {
+    stop3d.push(renderHome(app!, {
+      total: bagTotal(save),
+      coverUrl: homeCoverUrl(),
+      onHome: goHome,
+    }));
+    return;
   }
-  const list = el("div", "pack-groups");
-  for (const pack of ready) {
-    const button = el("button", "choice", `${pack.name} · ${save.packs[pack.id] ?? 0} 袋`);
-    button.type = "button";
-    button.dataset.choose = pack.id;
-    list.append(button);
+  if (route === "shop") {
+    stop3d.push(renderShop(app!, {
+      packs: shopPacks(),
+      selectedId: selectedShopId,
+      cosmeticKind,
+      cosmetics: shopCosmetics(),
+      onHome: goHome,
+      onSelect: selectShopPack,
+      onBuy: buyListedPack,
+      onContents: showShopContents,
+      onCosmeticKind: selectCosmeticKind,
+      onEquip: wearCosmetic,
+    }));
+    return;
   }
-  wrap.append(list);
-  return wrap;
+  if (route === "dex") {
+    mountDex();
+    return;
+  }
+  mountOpenPage();
 }
 
-function stageView(): HTMLElement {
-  stageEl = el("div", "stage");
-  const table = el("div", "table");
-  table.dataset.cloth = save.equipped.cloth;
-  landedEl = el("div", "landed");
-  stageEl.append(table, landedEl);
-  const packId = openMode.kind === "show" ? save.current?.packId : openMode.kind === "sealed" ? openMode.packId : "";
-  if (packId && openMode.kind !== "bare") stageEl.append(packet(packId));
-  return stageEl;
+// 拆卡桌上正在面对的那一包
+function facingPackId(): string | null {
+  if (openMode.kind === "sealed" || openMode.kind === "bare") return openMode.packId;
+  if (openMode.kind === "show") return save.current?.packId ?? null;
+  return null;
 }
 
-function packet(packId: string): DocumentFragment {
-  const fragment = document.createDocumentFragment();
-  const pack = packById(packId);
-  bagEl = el("div", "bag");
-  bagEl.dataset.cover = save.equipped.cover;
-  bagEl.append(el("div", "bag-foil"));
+function coverUrl(packId: string): string | null {
   const rel = `packs/${packId}.webp`;
-  if (pack && artFiles?.has(rel)) {
-    const face = el("img", "bag-face");
-    face.src = `/${rel}`;
-    face.alt = pack.name;
-    face.draggable = false;
-    bagEl.append(face);
-  }
-  crimpEl = el("div", "crimp");
-  bagEl.append(crimpEl);
-  ripEl = el("div", "rip grow-right");
-  gapEl = el("div", "rip-gap");
-  const guide = el("div", "rip-guide");
-  const hit = el("div", "rip-hit");
-  hit.setAttribute("aria-label", "撕口");
-  if (openMode.kind !== "sealed") hit.style.pointerEvents = "none";
-  ripEl.append(gapEl, guide, hit);
-  floaterEl = el("div", "floater");
-  floaterEl.hidden = true;
-  foilEl = el("div", "foil");
-  fragment.append(bagEl, ripEl, floaterEl, foilEl);
-  return fragment;
+  return artFiles?.has(rel) ? `/${rel}` : null;
 }
 
-function cardBack(): HTMLElement {
-  return el("div", "card-back");
-}
-
-function cardFront(packId: string, card: { id: string; name: string }, sheen: boolean): HTMLElement {
-  const front = el("div", "card-front");
-  const rel = `cards/${packId}/${card.id}.webp`;
-  if (artFiles?.has(rel)) {
-    const img = el("img", "card-img");
-    img.src = `/${rel}`;
-    img.alt = "";
-    img.draggable = false;
-    front.append(img);
-  }
-  front.append(el("p", "card-name", card.name));
-  if (sheen && artFiles?.has(rel)) front.append(el("div", "sheen"));
-  return front;
+function cardUrl(packId: string, cardId: string): string | null {
+  const rel = `cards/${packId}/${cardId}.webp`;
+  return artFiles?.has(rel) ? `/${rel}` : null;
 }
 
 function usesSleeve(): boolean {
@@ -604,7 +443,7 @@ function sealOpen(): void {
 
 // 按住撕口，开始一次左右拖动
 function gripTear(event: PointerEvent): void {
-  const hit = (event.target as HTMLElement).closest?.(".rip-hit");
+  const hit = (event.target as HTMLElement).closest?.(".stage-hit");
   if (!hit || openMode.kind !== "sealed" || save.current) return;
   retract = null;
   drag = { pointerId: event.pointerId, originX: event.clientX };
@@ -614,13 +453,12 @@ function gripTear(event: PointerEvent): void {
 
 // 只认水平位移，向左拖也折成正向进度
 function dragTear(event: PointerEvent): void {
-  followFoil(event);
   if (!drag || event.pointerId !== drag.pointerId || openMode.kind !== "sealed") return;
   const dx = event.clientX - drag.originX;
   if (dx === 0) return;
   tearDir = dx < 0 ? -1 : 1;
   const dragPx = dx < 0 ? -dx : dx;
-  tear = tearProgress(dragPx, ripEl?.clientWidth ?? 0);
+  tear = tearProgress(dragPx, (stageEl?.clientWidth ?? 0) * 0.42);
   paintTear();
   if (isOpened(tear)) sealOpen();
 }
@@ -633,17 +471,6 @@ function releaseTear(event: PointerEvent): void {
   retract = { from: tear, started: performance.now() };
 }
 
-// 让箔面高光停在指针底下
-function followFoil(event: PointerEvent): void {
-  if (!foilEl || !bagEl) return;
-  const rect = bagEl.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) return;
-  const x = ((event.clientX - rect.left) / rect.width) * 100;
-  const y = ((event.clientY - rect.top) / rect.height) * 100;
-  foilEl.style.setProperty("--hx", `${x}%`);
-  foilEl.style.setProperty("--hy", `${y}%`);
-}
-
 function shownTear(): number {
   if (openMode.kind === "sealed") return tear;
   if (openMode.kind !== "show") return 0;
@@ -651,192 +478,86 @@ function shownTear(): number {
   return 1;
 }
 
-// 按进度画出裂口，方向跟着手指
+// 把撕开进度交给三维桌子
 function paintTear(): void {
-  if (!gapEl || !ripEl) return;
-  const amount = shownTear();
-  gapEl.style.width = `${ripEl.clientWidth * amount}px`;
-  ripEl.classList.toggle("grow-left", tearDir < 0);
-  ripEl.classList.toggle("grow-right", tearDir >= 0);
-  const guide = ripEl.querySelector<HTMLElement>(".rip-guide");
-  if (guide) guide.hidden = amount > 0.02;
-  if (crimpEl) {
-    const lift = openMode.kind === "show"
-      ? (openMode.reveal.phase === "settle" ? clamp01(openMode.reveal.elapsed / 600) : 1)
-      : 0;
-    crimpEl.style.transform = lift ? `translateY(${-10 * lift}px)` : "";
-  }
+  table?.setTear(shownTear());
 }
 
-// 把裂口和箔光对齐到袋身
-function placeLayers(): void {
-  if (!stageEl || !bagEl) return;
-  const stage = stageEl.getBoundingClientRect();
-  const bag = bagEl.getBoundingClientRect();
-  const left = bag.left - stage.left;
-  const top = bag.top - stage.top;
-  if (ripEl) {
-    ripEl.style.left = `${left}px`;
-    ripEl.style.top = `${top + 22}px`;
-    ripEl.style.width = `${bag.width}px`;
-  }
-  if (foilEl) {
-    foilEl.style.left = `${left}px`;
-    foilEl.style.top = `${top}px`;
-    foilEl.style.width = `${bag.width}px`;
-    foilEl.style.height = `${bag.height}px`;
-  }
+// 五张落定后点卡面进入近看
+function onStageClick(event: MouseEvent): void {
+  if (!table || openMode.kind !== "show" || openMode.reveal.phase !== "done" || !save.current) return;
+  const index = table.pick(event);
+  const card = index == null ? undefined : save.current.cards[index];
+  if (card) openInspect(save.current.packId, card.id);
 }
 
-function cardBox(): { width: number; height: number; gap: number } {
-  const stageWidth = stageEl?.clientWidth ?? 640;
-  const gap = stageWidth < 720 ? 8 : 14;
-  const width = Math.min(118, Math.floor((stageWidth - 24 - gap * 4) / 5));
-  return { width, height: Math.round(width * 1.46), gap };
-}
-
-function slotCenter(index: number): { x: number; y: number } {
-  const box = cardBox();
-  const width = stageEl?.clientWidth ?? 0;
-  const height = stageEl?.clientHeight ?? 0;
-  const total = box.width * 5 + box.gap * 4;
-  const start = (width - total) / 2;
-  return {
-    x: start + index * (box.width + box.gap) + box.width / 2,
-    y: height - 18 - box.height / 2,
-  };
-}
-
-function tearCenter(): { x: number; y: number } {
-  if (!stageEl || !bagEl) return { x: 0, y: 0 };
-  const stage = stageEl.getBoundingClientRect();
-  const bag = bagEl.getBoundingClientRect();
-  return {
-    x: bag.left - stage.left + bag.width / 2,
-    y: bag.top - stage.top + 34,
-  };
-}
-
-function hoverCenter(index: number): { x: number; y: number } {
-  const slot = slotCenter(index);
-  const bagTop = stageEl && bagEl ? bagEl.getBoundingClientRect().top - stageEl.getBoundingClientRect().top : 150;
-  return { x: slot.x, y: Math.max(cardBox().height / 2 + 8, bagTop - 28) };
-}
-
-function fillLanded(count: number): void {
-  if (!landedEl || !save.current) return;
-  const packId = save.current.packId;
-  const box = cardBox();
-  landedEl.style.gap = `${box.gap}px`;
-  landedEl.replaceChildren();
-  save.current.cards.forEach((card, index) => {
-    if (index >= count) {
-      const spacer = el("div", "card-spacer");
-      spacer.style.width = `${box.width}px`;
-      spacer.style.height = `${box.height}px`;
-      landedEl!.append(spacer);
-      return;
-    }
-    const rarity = save.current ? rarityOf(packId, card.id) : "common";
-    const button = el("button", usesSleeve() ? "card with-sleeve" : "card");
-    button.type = "button";
-    button.dataset.zoom = String(index);
-    button.style.width = `${box.width}px`;
-    button.style.height = `${box.height}px`;
-    button.disabled = openMode.kind !== "show" || openMode.reveal.phase !== "done";
-    const inner = el("div", "card-inner");
-    const shine = rarity === "flash" || rarity === "gold";
-    inner.append(cardBack(), cardFront(packId, card, shine));
-    button.append(inner);
-    landedEl!.append(button);
-  });
-}
-
-function hideFloater(): void {
-  if (floaterEl) floaterEl.hidden = true;
-}
-
-function buildFloater(index: number): void {
-  if (!floaterEl || !save.current) return;
-  const card = save.current.cards[index];
-  const rarity = openMode.kind === "show" ? openMode.reveal.rarities[index] : rarityOf(save.current.packId, card.id);
-  const box = cardBox();
-  floaterEl.replaceChildren();
-  floaterEl.hidden = false;
-  floaterEl.classList.toggle("with-sleeve", usesSleeve());
-  floaterEl.style.width = `${box.width}px`;
-  floaterEl.style.height = `${box.height}px`;
-  floaterInner = el("div", "card-inner");
-  floaterInner.append(cardBack(), cardFront(save.current.packId, card, false));
-  floaterEl.append(floaterInner);
-  floaterEl.dataset.rarity = rarity;
-}
-
-// 按演出时钟摆正在飘的那一张和已经落下的卡
+// 按演出时钟把五张卡摆进三维桌子
 function paintShow(): void {
-  if (openMode.kind !== "show" || !save.current) return;
-  const state = openMode.reveal;
-  const count = presentedCount(state);
-  if (count !== landedCount) {
-    landedCount = count;
-    fillLanded(count);
-  }
+  if (openMode.kind !== "show" || !save.current || !table) return;
   paintTear();
-  const rarity = state.phase === "card" ? state.rarities[state.cardIndex] : undefined;
-  if (state.phase !== "card" || !rarity || state.elapsed >= landedAt(rarity)) {
-    hideFloater();
-    floatIndex = -1;
-  } else {
-    if (floatIndex !== state.cardIndex) {
-      floatIndex = state.cardIndex;
-      buildFloater(state.cardIndex);
-    }
-    moveFloater(state.cardIndex, state.elapsed, rarity);
-  }
-  if (nextBtn) nextBtn.hidden = state.phase !== "done";
-  const clickable = state.phase === "done";
-  landedEl?.querySelectorAll("button").forEach((button) => {
-    (button as HTMLButtonElement).disabled = !clickable;
-  });
+  table.setCards(showPoses());
+  if (nextBtn) nextBtn.hidden = openMode.reveal.phase !== "done";
 }
 
-// 飘出后停住，闪卡和金卡先亮边，再翻面落下
-function moveFloater(index: number, elapsed: number, rarity: Rarity): void {
-  if (!floaterEl || !floaterInner) return;
-  const origin = tearCenter();
-  const hover = hoverCenter(index);
-  const slot = slotCenter(index);
-  const pause = PAUSE[rarity];
-  const flipStart = FLOAT_MS + pause;
-  const landStart = flipStart + FLIP_MS;
-  let x = hover.x;
-  let y = hover.y;
-  let scale = 1;
-  let tilt = (index - 2) * 4;
-  if (elapsed < FLOAT_MS) {
-    const t = easeOut(clamp01(elapsed / FLOAT_MS));
-    x = lerp(origin.x, hover.x, t);
-    y = lerp(origin.y, hover.y, t);
-    scale = lerp(0.28, 1, t);
-    tilt = lerp(0, (index - 2) * 4, t);
-  } else if (elapsed >= landStart) {
-    const t = easeOut(clamp01((elapsed - landStart) / LAND_MS));
-    y = lerp(hover.y, slot.y, t);
-    tilt = lerp((index - 2) * 4, 0, t);
-  }
-  const spin = elapsed < flipStart ? 0 : 180 * easeOut(clamp01((elapsed - flipStart) / FLIP_MS));
-  floaterEl.style.left = `${x}px`;
-  floaterEl.style.top = `${y}px`;
-  floaterEl.style.transform = `translate(-50%, -50%) rotate(${tilt}deg) scale(${scale})`;
-  floaterInner.style.transform = `rotateY(${spin}deg)`;
-  const showFront = spin >= 90;
-  const back = floaterInner.querySelector<HTMLElement>(".card-back");
-  const front = floaterInner.querySelector<HTMLElement>(".card-front");
-  if (back) back.style.visibility = showFront ? "hidden" : "visible";
-  if (front) front.style.visibility = showFront ? "visible" : "hidden";
-  const edgeLit = elapsed >= FLOAT_MS && elapsed < landStart;
-  floaterEl.classList.toggle("edge-flash", edgeLit && rarity === "flash");
-  floaterEl.classList.toggle("edge-gold", edgeLit && rarity === "gold");
+// 算出每张卡此刻的位置，落定后正面朝前
+function showPoses(): CardPose[] {
+  if (openMode.kind !== "show" || !save.current) return [];
+  const state = openMode.reveal;
+  const packId = save.current.packId;
+  return save.current.cards.map((card, index) => {
+    const rarity = state.rarities[index] ?? "common";
+    const flipStart = FLOAT_MS + PAUSE[rarity];
+    const landAt = flipStart + FLIP_MS + LAND_MS;
+    const beating = state.phase === "card"
+      && index === state.cardIndex
+      && state.elapsed >= flipStart
+      && state.elapsed < landAt;
+    const landed = state.phase === "done"
+      || (state.phase === "card" && index < state.cardIndex)
+      || (state.phase === "card" && index === state.cardIndex && state.elapsed >= landAt);
+    const pose: CardPose = {
+      key: `${index}:${card.id}`,
+      index,
+      look: {
+        name: card.name,
+        url: cardUrl(packId, card.id),
+        gray: false,
+        sleeve: usesSleeve(),
+        layers: cardLayers(rarity, beating, landed),
+      },
+      visible: false,
+      y: -1.95,
+      z: 0,
+      xMix: 1,
+      rotX: 0,
+      rotY: 0,
+      rotZ: 0,
+      scale: 1,
+    };
+    if (landed) return { ...pose, visible: true };
+    if (state.phase !== "card" || index !== state.cardIndex || state.elapsed >= landAt) return pose;
+    const elapsed = state.elapsed;
+    const landStart = flipStart + FLIP_MS;
+    let y = 0.15;
+    let xMix = 1;
+    let scale = 1;
+    let z = 0.2;
+    if (elapsed < FLOAT_MS) {
+      const t = easeOut(clamp01(elapsed / FLOAT_MS));
+      y = lerp(1.2, 0.15, t);
+      xMix = t;
+      scale = lerp(0.4, 1, t);
+      z = lerp(0.45, 0.2, t);
+    } else if (elapsed >= landStart) {
+      const t = easeOut(clamp01((elapsed - landStart) / LAND_MS));
+      y = lerp(0.15, -1.95, t);
+      z = lerp(0.2, 0, t);
+    }
+    let rotY = Math.PI;
+    if (elapsed >= landStart) rotY = 0;
+    else if (elapsed >= flipStart) rotY = Math.PI * (1 - easeOut(clamp01((elapsed - flipStart) / FLIP_MS)));
+    return { ...pose, visible: true, y, z, xMix, scale, rotY };
+  });
 }
 
 // 五张落定后写入图鉴，同包还有袋子就再放一只
@@ -852,102 +573,102 @@ function finishThisPack(): void {
   renderPage();
 }
 
-// 点开已经落下的卡看大图
-function openLarge(index: number): void {
-  if (openMode.kind !== "show" || openMode.reveal.phase !== "done" || !save.current) return;
-  const card = save.current.cards[index];
-  if (!card) return;
-  closeLarge();
-  const layer = el("div", "zoom");
-  layer.dataset.zoomLayer = "1";
-  const frame = el("figure", "zoom-card");
-  const rel = `cards/${save.current.packId}/${card.id}.webp`;
-  if (artFiles?.has(rel)) {
-    const img = el("img");
-    img.src = `/${rel}`;
-    img.alt = card.name;
-    frame.append(img);
-  }
-  frame.append(el("figcaption", "", card.name));
-  const close = el("button", "zoom-close", "关闭");
-  close.type = "button";
-  close.dataset.closeZoom = "1";
-  layer.append(frame, close);
-  layer.addEventListener("click", (event) => {
-    if (event.target === layer) closeLarge();
+// 近看时持有数来自图鉴，还没写入图鉴的这张写本包开出
+function openInspect(packId: string, cardId: string): void {
+  const pack = packById(packId);
+  const card = pack?.cards.find((item) => item.id === cardId);
+  if (!pack || !card) return;
+  const owned = save.owned[card.id] ?? 0;
+  const current = save.current;
+  const inCurrent = current != null && current.packId === pack.id && current.cards.some((item) => item.id === card.id);
+  // 没拆到、也不是这一包刚开出的，不打开
+  if (owned <= 0 && !inCurrent) return;
+  closeInspect();
+  const rarity = RARITY_TABS.find((tab) => tab.id === card.rarity)?.label ?? "";
+  const view = renderInspect(app!, {
+    name: card.name,
+    meta: `${pack.name} · ${rarity}`,
+    hold: owned > 0 ? `持有 ${owned}` : "本包开出",
+    onClose: closeInspect,
   });
-  app!.append(layer);
+  inspectStop = mountCardViewer(view, {
+    name: card.name,
+    url: cardUrl(pack.id, card.id),
+    gray: false,
+    sleeve: usesSleeve(),
+    layers: settledLayers(card.rarity),
+  });
 }
 
-function closeLarge(): void {
-  app?.querySelector("[data-zoom-layer]")?.remove();
+// 关掉近看并停掉卡的旋转
+function closeInspect(): void {
+  inspectStop?.();
+  inspectStop = null;
+  app?.querySelector(".overlay.inspect")?.remove();
 }
 
-// 处理买袋、换装饰、选包、翻面后的下一包和大图
-function onClick(event: MouseEvent): void {
-  const target = event.target as HTMLElement;
-  const tab = target.closest<HTMLElement>("[data-shop-tab]");
-  if (tab?.dataset.shopTab === "pack" || tab?.dataset.shopTab === "cover" || tab?.dataset.shopTab === "sleeve" || tab?.dataset.shopTab === "cloth") {
-    shopTab = tab.dataset.shopTab;
-    renderPage();
-    return;
-  }
-  const buy = target.closest<HTMLElement>("[data-buy]");
-  if (buy?.dataset.buy) {
-    buyListedPack(buy.dataset.buy);
-    return;
-  }
-  const worn = target.closest<HTMLElement>("[data-equip-kind]");
-  const kind = worn?.dataset.equipKind;
-  if (worn?.dataset.equipId && (kind === "cover" || kind === "sleeve" || kind === "cloth")) {
-    wearCosmetic(kind, worn.dataset.equipId);
-    return;
-  }
-  const series = target.closest<HTMLElement>("[data-series]");
-  if (series?.dataset.series) {
-    dexSeries = series.dataset.series;
-    const first = PACKS.find((pack) => pack.seriesId === dexSeries);
-    if (first) dexPack = first.id;
-    renderPage();
-    return;
-  }
-  const picked = target.closest<HTMLElement>("[data-dex-pack]");
-  if (picked?.dataset.dexPack) {
-    dexPack = picked.dataset.dexPack;
-    renderPage();
-    return;
-  }
-  const rarity = target.closest<HTMLElement>("[data-rarity]");
-  if (rarity?.dataset.rarity === "gold" || rarity?.dataset.rarity === "flash" || rarity?.dataset.rarity === "super" || rarity?.dataset.rarity === "rare" || rarity?.dataset.rarity === "common") {
-    dexRarity = rarity.dataset.rarity;
-    renderPage();
-    return;
-  }
-  const choose = target.closest<HTMLElement>("[data-choose]");
-  if (choose?.dataset.choose) {
-    choosePack(choose.dataset.choose);
-    return;
-  }
-  if (target.closest("[data-next]")) {
-    finishThisPack();
-    return;
-  }
-  if (target.closest("[data-close-zoom]")) {
-    closeLarge();
-    return;
-  }
-  const zoom = target.closest<HTMLElement>("[data-zoom]");
-  if (zoom?.dataset.zoom) openLarge(Number(zoom.dataset.zoom));
+function closeContents(): void {
+  app?.querySelector(".overlay.contents")?.remove();
 }
 
-// 离开拆卡页时写回播到第几张
+// 按稀有度列出这一包，没获得的不能近看
+function openPackContents(packId: string): void {
+  const pack = packById(packId);
+  if (!pack) return;
+  closeContents();
+  const tiers = RARITY_TABS.flatMap((tab) => {
+    const cards = pack.cards.filter((card) => card.rarity === tab.id);
+    if (cards.length === 0) return [];
+    return [{
+      label: `${tab.label} · ${cards.length}`,
+      cards: cards.map((card) => ({
+        id: card.id,
+        name: card.name,
+        owned: save.owned[card.id] ?? 0,
+        url: cardUrl(pack.id, card.id),
+      })),
+    }];
+  });
+  renderContents(app!, {
+    title: `${pack.name} · ${pack.cards.length} 张`,
+    tiers,
+    onClose: closeContents,
+    onInspect: (id) => {
+      if ((save.owned[id] ?? 0) <= 0) return;
+      openInspect(pack.id, id);
+    },
+  });
+}
+
+// 离开商店或拆卡时清掉该页选中，离开拆卡时写回播到第几张
 function onHash(): void {
   const next = readRoute();
-  if (route === "open" && next !== "open") rememberShown();
+  if (route === "shop" && next !== "shop") {
+    selectedShopId = null;
+    cosmeticKind = null;
+  }
+  if (route === "open" && next !== "open") {
+    rememberShown();
+    selectedOpenId = null;
+  }
   const entering = next === "open" && route !== "open";
   route = next;
   if (entering) syncOpenFromSave();
   renderPage();
+}
+
+// Esc 先关清单或近看，没有这两层才回首页
+function onKeyDown(event: KeyboardEvent): void {
+  if (event.key !== "Escape") return;
+  if (app!.querySelector(".overlay.inspect")) {
+    closeInspect();
+    return;
+  }
+  if (app!.querySelector(".overlay.contents")) {
+    closeContents();
+    return;
+  }
+  goHome();
 }
 
 // 按两次绘制之间的时间回弹裂口，或推进翻面
@@ -963,17 +684,16 @@ function stepFrame(now: number): void {
       } else {
         tear = retract.from * (1 - easeOut(clamp01(t)));
       }
-      placeLayers();
       paintTear();
     } else if (openMode.kind === "show" && artFiles && openMode.reveal.phase !== "done") {
+      // 翻面过程中只改桌子和下一包按钮
       openMode = { kind: "show", reveal: advance(openMode.reveal, dt) };
       rememberShown();
-      placeLayers();
       paintShow();
-    } else {
-      placeLayers();
-      if (openMode.kind === "sealed" || openMode.kind === "show") paintTear();
+    } else if (openMode.kind === "sealed" || openMode.kind === "show") {
+      paintTear();
     }
+    table?.render();
   }
   requestAnimationFrame(stepFrame);
 }
@@ -988,9 +708,9 @@ window.addEventListener("hashchange", onHash);
 window.addEventListener("pagehide", () => {
   if (readRoute() === "open") rememberShown();
 });
+window.addEventListener("keydown", onKeyDown);
 window.addEventListener("pointermove", dragTear);
 window.addEventListener("pointerup", releaseTear);
 window.addEventListener("pointercancel", releaseTear);
 app.addEventListener("pointerdown", gripTear);
-app.addEventListener("click", onClick);
 requestAnimationFrame(stepFrame);
