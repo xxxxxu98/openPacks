@@ -236,7 +236,8 @@ function shopCosmetics(): { kind: CosmeticKind; id: string; on: boolean }[] {
 // 手里有袋子，但这包的图还不齐
 function hasUnreadyHeld(): boolean {
   const files = artFiles;
-  if (!files) return false;
+  // 图清单还没到，手里有袋子就算没齐
+  if (!files) return Object.values(save.packs).some((count) => count > 0);
   return PACKS.some((pack) => (save.packs[pack.id] ?? 0) > 0 && !packArtReady(pack, files));
 }
 
@@ -458,7 +459,7 @@ function dragTear(event: PointerEvent): void {
   if (dx === 0) return;
   tearDir = dx < 0 ? -1 : 1;
   const dragPx = dx < 0 ? -dx : dx;
-  tear = tearProgress(dragPx, (stageEl?.clientWidth ?? 0) * 0.42);
+  tear = tearProgress(dragPx, table?.bagWidthPx() ?? 0);
   paintTear();
   if (isOpened(tear)) sealOpen();
 }

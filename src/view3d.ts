@@ -566,6 +566,22 @@ export class OpenTable {
     void paintPack(this.pack, url);
   }
 
+  // 袋面在屏幕上的像素宽度，用作撕开轨道
+  bagWidthPx(): number {
+    const width = this.host.clientWidth;
+    const height = this.host.clientHeight;
+    if (width <= 0 || height <= 0) return 0;
+    this.camera.aspect = width / height;
+    this.camera.updateProjectionMatrix();
+    this.camera.updateMatrixWorld();
+    const origin = this.pack.position;
+    const left = new THREE.Vector3(origin.x - PACK_W / 2, origin.y, 0);
+    const right = new THREE.Vector3(origin.x + PACK_W / 2, origin.y, 0);
+    left.project(this.camera);
+    right.project(this.camera);
+    return Math.abs(right.x - left.x) * width * 0.5;
+  }
+
   // 撕开进度带动封口掀起
   setTear(amount: number): void {
     this.flap.rotation.x = amount * 0.72;
