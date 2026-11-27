@@ -132,6 +132,20 @@ button { cursor: pointer; }
     linear-gradient(90deg, transparent 22%, rgba(253,224,71,0.35) 46%, rgba(255,255,255,0.65) 50%, rgba(253,224,71,0.35) 54%, transparent 78%);
   animation: flashOut 0.9s ease forwards;
 }
+.golden-flash[data-rarity='SR'] {
+  background:
+    radial-gradient(circle at 50% 42%, rgba(236, 255, 248, 0.92), rgba(93, 204, 176, 0.5) 30%, rgba(20, 107, 86, 0.22) 56%, transparent 78%);
+}
+.golden-flash[data-rarity='SSR'] {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255, 252, 240, 0.98), rgba(240, 212, 138, 0.62) 26%, rgba(198, 161, 90, 0.22) 54%, transparent 76%),
+    linear-gradient(90deg, transparent 30%, rgba(255, 244, 214, 0.55) 50%, transparent 70%);
+}
+.golden-flash[data-rarity='SECRET'] {
+  background:
+    radial-gradient(circle at 50% 40%, rgba(246, 240, 255, 0.98), rgba(196, 176, 220, 0.55) 24%, rgba(92, 52, 120, 0.28) 50%, rgba(0, 0, 0, 0.35) 72%, transparent 84%);
+  animation-duration: 1.25s;
+}
 @keyframes flashOut {
   0% { opacity: 0; }
   18% { opacity: 1; }
@@ -144,7 +158,27 @@ button { cursor: pointer; }
   60% { transform: translate(-3px, -2px); }
   80% { transform: translate(3px, 2px); }
 }
+@keyframes screenShakeMid {
+  0%, 100% { transform: translate(0, 0); }
+  16% { transform: translate(-6px, 4px); }
+  32% { transform: translate(7px, -4px); }
+  50% { transform: translate(-5px, -3px); }
+  68% { transform: translate(5px, 3px); }
+  84% { transform: translate(-2px, 1px); }
+}
+@keyframes screenShakeHard {
+  0%, 100% { transform: translate(0, 0); }
+  12% { transform: translate(-9px, 5px); }
+  28% { transform: translate(10px, -6px); }
+  44% { transform: translate(-7px, -4px); }
+  60% { transform: translate(8px, 4px); }
+  76% { transform: translate(-4px, 2px); }
+  88% { transform: translate(2px, -1px); }
+}
 html.is-screen-shaking body { animation: screenShake 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+html.is-screen-shaking[data-shake='soft'] body { animation: screenShake 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+html.is-screen-shaking[data-shake='mid'] body { animation: screenShakeMid 0.48s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+html.is-screen-shaking[data-shake='hard'] body { animation: screenShakeHard 0.62s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
 
 @keyframes viewReveal {
   0% { opacity: 0; transform: translateY(14px) scale(0.985); }
@@ -153,6 +187,8 @@ html.is-screen-shaking body { animation: screenShake 0.32s cubic-bezier(0.36, 0.
 .view-animate-in { animation: viewReveal 0.42s cubic-bezier(0.22, 1, 0.36, 1); }
 
 .topbar {
+  position: relative;
+  z-index: 22;
   width: min(1152px, calc(100% - 32px));
   margin: 0 auto;
   padding: 20px 0 12px;
@@ -449,6 +485,8 @@ html.is-screen-shaking body { animation: screenShake 0.32s cubic-bezier(0.36, 0.
 }
 .rip-note { margin-top: 16px; font-size: 11px; letter-spacing: 0.22em; color: #d4d4d8; }
 .glass-dock {
+  position: relative;
+  z-index: 18;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -463,6 +501,8 @@ html.is-screen-shaking body { animation: screenShake 0.32s cubic-bezier(0.36, 0.
 .empty { display: grid; justify-items: center; gap: 16px; color: #d4d4d8; }
 
 .cards-fan {
+  position: relative;
+  z-index: 16;
   width: 100%;
   display: flex;
   flex-wrap: nowrap;
@@ -627,16 +667,14 @@ html.is-screen-shaking body { animation: screenShake 0.32s cubic-bezier(0.36, 0.
   z-index: -1;
   transition: opacity 0.4s ease;
 }
-.peek-aura.active-N { opacity: 0.45; background: radial-gradient(circle, rgba(148,163,184,0.5), transparent 70%); }
-.peek-aura.active-R { opacity: 0.7; background: radial-gradient(circle, rgba(226,232,240,0.65), transparent 70%); }
-.peek-aura.active-SR { opacity: 0.85; background: radial-gradient(circle, rgba(168,85,247,0.82), transparent 70%); }
-.peek-aura.active-UR { opacity: 0.95; background: radial-gradient(circle, rgba(251,191,36,0.92), transparent 70%); }
+.peek-aura.active-N { opacity: 0.45; background: radial-gradient(circle, rgba(183, 174, 162, 0.5), transparent 70%); }
+.peek-aura.active-R { opacity: 0.7; background: radial-gradient(circle, rgba(126, 182, 222, 0.72), transparent 70%); }
+.peek-aura.active-SR { opacity: 0.85; background: radial-gradient(circle, rgba(93, 204, 176, 0.82), transparent 70%); }
+.peek-aura.active-UR { opacity: 0.95; background: radial-gradient(circle, rgba(240, 212, 138, 0.92), transparent 70%); }
 .peek-aura.active-SEC {
   opacity: 1;
-  background: conic-gradient(from 0deg, #ff0080, #ff8c00, #ffd700, #00ff88, #00cfff, #a855f7, #ff0080);
-  animation: spinAura 2.4s linear infinite;
+  background: radial-gradient(circle, rgba(215, 196, 239, 0.95), rgba(92, 52, 120, 0.42) 46%, transparent 72%);
 }
-@keyframes spinAura { to { transform: rotate(360deg); } }
 @keyframes packShake {
   0%, 100% { transform: rotateZ(0deg); }
   15% { transform: rotateZ(-6deg) translateX(-8px); }
@@ -1131,10 +1169,15 @@ button.tear-track:active { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) {
   .is-float, .foil-pack-wrapper.is-shaking, .volumetric-beams, .smoke-layer,
   .gold-foil-text, .rarity-SECRET .card-front, .peek-aura.active-SEC,
-  .view-animate-in, .fan-pop, .golden-flash, .shop-meta .is-pop, .shop-toast {
+  .view-animate-in, .fan-pop, .golden-flash, .shop-meta .is-pop, .shop-toast,
+  .grade-flash, .grade-callout, .reveal-ring, .reveal-pillar, .reveal-stamp, .reveal-sheen::before {
     animation: none !important;
   }
   .inspect-pose { transition: none; }
+  .card-stage.is-revealing .tcg-card { transition-duration: 0.01s !important; }
+  .grade-flash { opacity: 0.42; }
+  .grade-callout { opacity: 1; transform: translate(-50%, 0); }
+  .reveal-stamp { opacity: 1; transform: translate(-50%, -120%); }
 }
 
 /* 二十四节气：册页纸色压过稀有度彩边，卡包改成纸封。 */
@@ -1311,7 +1354,7 @@ button.tear-track:active { cursor: grabbing; }
   --ink: #1c2836;
   --pigment: #3d6280;
 }
-/* 品级是亮边：越高等级边越厚、光越强，并跟着指针走。 */
+/* 品级五色：松烟灰、花青、石绿、泥金、青莲。朱红只留给岁印。 */
 .rarity-N .card-front.is-leaf {
   --grade: #7a7268;
   --rim: 1.5px;
@@ -1319,16 +1362,16 @@ button.tear-track:active { cursor: grabbing; }
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
 }
 .rarity-R .card-front.is-leaf {
-  --grade: #2c261f;
+  --grade: #1e4f78;
   --rim: 2.5px;
-  --rim-color: #2c261f;
-  box-shadow: 0 0 0 1px rgba(44, 38, 31, 0.35), 0 18px 36px rgba(0, 0, 0, 0.5);
+  --rim-color: #3d7eae;
+  box-shadow: 0 0 12px rgba(61, 126, 174, 0.35), 0 18px 36px rgba(0, 0, 0, 0.5);
 }
 .rarity-SR .card-front.is-leaf {
-  --grade: #8e3a38;
+  --grade: #146b56;
   --rim: 3.5px;
-  --rim-color: #b4232c;
-  box-shadow: 0 0 18px rgba(180, 35, 44, 0.55), 0 18px 36px rgba(0, 0, 0, 0.5);
+  --rim-color: #1f9a78;
+  box-shadow: 0 0 18px rgba(31, 154, 120, 0.55), 0 18px 36px rgba(0, 0, 0, 0.5);
 }
 .rarity-SSR .card-front.is-leaf {
   --grade: #8a6424;
@@ -1337,15 +1380,15 @@ button.tear-track:active { cursor: grabbing; }
   box-shadow: 0 0 22px rgba(212, 168, 74, 0.72), 0 18px 36px rgba(0, 0, 0, 0.5);
 }
 .rarity-SECRET .card-front.is-leaf {
-  --grade: #8e3a38;
+  --grade: #5c3478;
   --rim: 5px;
-  --rim-color: #e6d3a1;
-  box-shadow: 0 0 28px rgba(230, 196, 110, 0.85), 0 0 10px rgba(142, 58, 56, 0.45), 0 18px 36px rgba(0, 0, 0, 0.5);
+  --rim-color: #c4b0dc;
+  box-shadow: 0 0 28px rgba(156, 112, 196, 0.8), 0 18px 36px rgba(0, 0, 0, 0.5);
 }
-.tcg-card.is-tilting.rarity-R .card-front.is-leaf { box-shadow: 0 0 14px rgba(44, 38, 31, 0.35), 0 22px 40px rgba(0, 0, 0, 0.55); }
-.tcg-card.is-tilting.rarity-SR .card-front.is-leaf { box-shadow: 0 0 28px rgba(180, 35, 44, 0.85), 0 22px 40px rgba(0, 0, 0, 0.55); }
+.tcg-card.is-tilting.rarity-R .card-front.is-leaf { box-shadow: 0 0 18px rgba(61, 126, 174, 0.55), 0 22px 40px rgba(0, 0, 0, 0.55); }
+.tcg-card.is-tilting.rarity-SR .card-front.is-leaf { box-shadow: 0 0 28px rgba(31, 154, 120, 0.8), 0 22px 40px rgba(0, 0, 0, 0.55); }
 .tcg-card.is-tilting.rarity-SSR .card-front.is-leaf { box-shadow: 0 0 34px rgba(230, 196, 110, 0.95), 0 22px 40px rgba(0, 0, 0, 0.55); }
-.tcg-card.is-tilting.rarity-SECRET .card-front.is-leaf { box-shadow: 0 0 40px rgba(255, 228, 160, 1), 0 0 16px rgba(142, 58, 56, 0.7), 0 22px 40px rgba(0, 0, 0, 0.55); }
+.tcg-card.is-tilting.rarity-SECRET .card-front.is-leaf { box-shadow: 0 0 40px rgba(196, 160, 230, 0.95), 0 22px 40px rgba(0, 0, 0, 0.55); }
 .leaf-rim {
   position: absolute;
   inset: 0;
@@ -1364,10 +1407,9 @@ button.tear-track:active { cursor: grabbing; }
 .rarity-SECRET .leaf-rim {
   background:
     radial-gradient(240px circle at var(--mx, 50%) var(--my, 30%), #fff 0%, transparent 42%),
-    conic-gradient(from calc(var(--gx, 40) * 3.6deg), #f8e7b4, #8e3a38 30%, #fff6d4 52%, #c6a15a 74%, #8e3a38 88%, #f8e7b4);
+    conic-gradient(from calc(var(--gx, 40) * 3.6deg), #f3eaff, #5c3478 30%, #efe4ff 52%, #8d6aaf 74%, #5c3478 88%, #f3eaff);
 }
-.rarity-SSR .card-front.is-leaf.is-silk::after,
-.rarity-SECRET .card-front.is-leaf.is-silk::after {
+.rarity-SSR .card-front.is-leaf.is-silk::after {
   background: linear-gradient(
     115deg,
     transparent calc(var(--mx, 50%) - 22%),
@@ -1375,7 +1417,15 @@ button.tear-track:active { cursor: grabbing; }
     transparent calc(var(--mx, 50%) + 18%)
   );
 }
-.rarity-SECRET .card-front.is-leaf.is-silk::after { mix-blend-mode: normal; }
+.rarity-SECRET .card-front.is-leaf.is-silk::after {
+  background: linear-gradient(
+    115deg,
+    transparent calc(var(--mx, 50%) - 22%),
+    rgba(236, 220, 255, 0.82) var(--mx, 50%),
+    transparent calc(var(--mx, 50%) + 18%)
+  );
+  mix-blend-mode: normal;
+}
 .rarity-SR .card-front.is-leaf .leaf-plate,
 .rarity-SSR .card-front.is-leaf .leaf-plate,
 .rarity-SECRET .card-front.is-leaf .leaf-plate {
@@ -1384,7 +1434,7 @@ button.tear-track:active { cursor: grabbing; }
 .rarity-SSR .card-front.is-leaf .leaf-plate { border-width: 1.5px; }
 .rarity-SECRET .card-front.is-leaf .leaf-plate {
   border-width: 1.5px;
-  box-shadow: inset 0 0 0 1px rgba(198, 161, 90, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(141, 106, 175, 0.85);
 }
 .card-front.is-leaf.is-silk::after {
   content: '';
@@ -1421,8 +1471,8 @@ button.tear-track:active { cursor: grabbing; }
 .tcg-card.is-tilting.rarity-SECRET .card-front.is-leaf .card-glare { opacity: 0.95; }
 .rarity-SECRET .card-front.is-leaf .card-glare {
   background:
-    radial-gradient(circle at var(--mx, 50%) var(--my, 36%), rgba(255, 248, 220, 0.9), transparent 22%),
-    linear-gradient(108deg, transparent calc(var(--mx, 50%) - 18%), rgba(255, 214, 150, 0.35) calc(var(--mx, 50%) - 4%), rgba(255, 255, 255, 0.8) var(--mx, 50%), rgba(176, 64, 58, 0.28) calc(var(--mx, 50%) + 7%), transparent calc(var(--mx, 50%) + 16%));
+    radial-gradient(circle at var(--mx, 50%) var(--my, 36%), rgba(246, 240, 255, 0.9), transparent 22%),
+    linear-gradient(108deg, transparent calc(var(--mx, 50%) - 18%), rgba(215, 196, 239, 0.45) calc(var(--mx, 50%) - 4%), rgba(255, 255, 255, 0.8) var(--mx, 50%), rgba(92, 52, 120, 0.22) calc(var(--mx, 50%) + 7%), transparent calc(var(--mx, 50%) + 16%));
 }
 .leaf-head,
 .leaf-foot {
@@ -1452,9 +1502,9 @@ button.tear-track:active { cursor: grabbing; }
 }
 .rarity-R .card-front.is-leaf .leaf-rank { border-width: 2px; }
 .rarity-SR .card-front.is-leaf .leaf-rank {
-  background: #8e3a38;
-  color: #f6efe6;
-  border-color: #8e3a38;
+  background: #146b56;
+  color: #f3faf6;
+  border-color: #146b56;
 }
 .rarity-SSR .card-front.is-leaf .leaf-rank {
   background: linear-gradient(160deg, #f6e7bc, #c6a15a 58%, #8d6b2c);
@@ -1462,10 +1512,10 @@ button.tear-track:active { cursor: grabbing; }
   border-color: #8d6b2c;
 }
 .rarity-SECRET .card-front.is-leaf .leaf-rank {
-  background: #8e3a38;
-  color: #f8f1e2;
-  border-color: #f0e2b0;
-  box-shadow: 0 0 0 1.5px #c6a15a;
+  background: #5c3478;
+  color: #f7f2fb;
+  border-color: #d9c8ee;
+  box-shadow: 0 0 0 1.5px #a98bc4;
 }
 .leaf-head .new-tag {
   background: var(--seal);
@@ -1578,9 +1628,9 @@ button.tear-track:active { cursor: grabbing; }
   color: #2a2114;
 }
 .rarity-SECRET .card-front.is-leaf .leaf-grade {
-  background: #8e3a38;
-  color: #f8f1e2;
-  box-shadow: 0 0 0 1.5px #e6d3a1;
+  background: #5c3478;
+  color: #f7f2fb;
+  box-shadow: 0 0 0 1.5px #c4b0dc;
 }
 .card-back.is-paper-back {
   display: grid;
@@ -1694,4 +1744,178 @@ button.tear-track:active { cursor: grabbing; }
 @media (max-width: 720px) {
   .pack-detail-head { grid-template-columns: 1fr; justify-items: center; text-align: center; padding-right: 0; }
   .pack-detail-panel { padding: 48px 14px 22px; }
+}
+
+/* 翻开时按品级给光环、光柱、印戳和扫光。 */
+.card-stage {
+  position: relative;
+  width: 100%;
+  transform-style: preserve-3d;
+}
+.card-stage .tcg-card { position: relative; z-index: 1; }
+.reveal-aura {
+  position: absolute;
+  inset: -28% -16%;
+  z-index: 0;
+  pointer-events: none;
+}
+.reveal-ring,
+.reveal-pillar,
+.reveal-stamp,
+.reveal-sheen { position: absolute; pointer-events: none; }
+.reveal-ring {
+  left: 50%;
+  top: 48%;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid var(--reveal, #f3efe4);
+  opacity: 0;
+  animation: ringOut 0.72s ease-out forwards;
+}
+.reveal-ring.alt {
+  width: 98%;
+  border-color: #b794d6;
+  animation-delay: 0.14s;
+}
+.reveal-ring.echo {
+  width: 46%;
+  animation-delay: 0.08s;
+  animation-duration: 0.42s;
+}
+.reveal-pillar {
+  display: none;
+  left: 50%;
+  top: -28%;
+  width: 24%;
+  height: 168%;
+  background: linear-gradient(to bottom, transparent, var(--reveal, #f0d48a), transparent);
+  filter: blur(10px);
+  opacity: 0;
+  transform: translateX(-50%);
+}
+.reveal-SSR .reveal-pillar,
+.reveal-SECRET .reveal-pillar {
+  display: block;
+  animation: pillarRise 1s ease-out forwards;
+}
+.reveal-stamp {
+  z-index: 7;
+  left: 50%;
+  top: 0;
+  padding: 3px 8px 4px 0.28em;
+  border: 1.5px solid currentColor;
+  background: rgba(10, 8, 6, 0.82);
+  color: var(--reveal, #f0d48a);
+  font-family: "Noto Serif SC", "Songti SC", "STSong", SimSun, serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  line-height: 1.2;
+  opacity: 0;
+  animation: stampIn 1.15s cubic-bezier(0.16, 0.84, 0.24, 1) forwards;
+}
+.reveal-sheen {
+  inset: 0;
+  z-index: 5;
+  border-radius: 15px;
+  overflow: hidden;
+}
+.reveal-sheen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 42%, rgba(255, 248, 220, 0.42) 50%, transparent 58%);
+  transform: translateX(-120%);
+  animation: sheenPass 0.7s ease-out 0.28s both;
+}
+.reveal-N { --reveal: #e4d8c4; --flip: 0.28s; --flip-ease: cubic-bezier(0.2, 0.7, 0.2, 1); }
+.reveal-R { --reveal: #f4fbff; --flip: 0.42s; --flip-ease: cubic-bezier(0.16, 0.8, 0.2, 1); }
+.reveal-SR { --reveal: #7ddec4; --flip: 0.68s; --flip-ease: cubic-bezier(0.16, 0.84, 0.24, 1); }
+.reveal-SSR { --reveal: #f0d48a; --flip: 0.95s; --flip-ease: cubic-bezier(0.12, 0.8, 0.2, 1); }
+.reveal-SECRET { --reveal: #d7c4ef; --flip: 1.2s; --flip-ease: cubic-bezier(0.08, 0.78, 0.16, 1); }
+.card-stage.is-revealing .tcg-card {
+  transition-duration: var(--flip);
+  transition-timing-function: var(--flip-ease);
+}
+.reveal-N .reveal-ring { animation-duration: 0.38s; border-width: 1px; }
+.reveal-R .reveal-ring { animation-duration: 0.52s; border-width: 2px; box-shadow: 0 0 12px rgba(244, 251, 255, 0.55); }
+.reveal-SR .reveal-ring { animation-duration: 0.82s; box-shadow: 0 0 16px rgba(93, 204, 176, 0.55); }
+.reveal-SR .reveal-sheen::before {
+  background: linear-gradient(105deg, transparent 42%, rgba(210, 255, 236, 0.5) 50%, transparent 58%);
+}
+.reveal-SSR .reveal-ring { animation-duration: 1s; box-shadow: 0 0 18px rgba(240, 212, 138, 0.6); }
+.reveal-SECRET .reveal-ring { animation-duration: 1.2s; box-shadow: 0 0 22px rgba(196, 160, 230, 0.75); }
+.reveal-SECRET .reveal-sheen::before {
+  background: linear-gradient(105deg, transparent 42%, rgba(236, 224, 252, 0.55) 50%, transparent 58%);
+}
+.reveal-SSR .reveal-stamp { font-size: 18px; animation-duration: 1.35s; }
+.reveal-SECRET .reveal-stamp { font-size: 20px; animation-duration: 1.7s; }
+.reveal-SSR .reveal-sheen::before { animation-delay: 0.45s; animation-duration: 0.8s; }
+.reveal-SECRET .reveal-sheen::before { animation-delay: 0.62s; animation-duration: 0.95s; }
+.grade-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+  animation: flashOut 0.9s ease forwards;
+}
+.grade-SR {
+  background: radial-gradient(circle at 50% 46%, rgba(125, 222, 196, 0.34), rgba(12, 48, 40, 0.16) 46%, transparent 72%);
+}
+.grade-SSR {
+  background: radial-gradient(circle at 50% 46%, rgba(255, 246, 220, 0.46), rgba(198, 161, 90, 0.18) 40%, transparent 70%);
+  animation-duration: 1.15s;
+}
+.grade-SECRET {
+  background: radial-gradient(circle at 50% 48%, transparent 0 16%, rgba(215, 196, 239, 0.32) 30%, rgba(18, 8, 28, 0.66) 64%);
+  animation-duration: 1.45s;
+}
+.grade-callout {
+  position: fixed;
+  top: 96px;
+  left: 50%;
+  z-index: 19;
+  pointer-events: none;
+  padding: 8px 18px 8px 0;
+  border: 1px solid currentColor;
+  background: rgba(12, 10, 8, 0.78);
+  font-family: "Noto Serif SC", "Songti SC", "STSong", SimSun, serif;
+  letter-spacing: 0.42em;
+  animation: calloutIn 0.9s cubic-bezier(0.16, 0.84, 0.24, 1) forwards;
+}
+.grade-callout b { font-weight: 600; padding-left: 0.42em; }
+.callout-SR { color: #7ddec4; font-size: 22px; }
+.callout-SSR { color: #f0d48a; font-size: 28px; animation-duration: 1.2s; }
+.callout-SECRET {
+  color: #e4d4f7;
+  font-size: 34px;
+  border-width: 2px;
+  box-shadow: 0 0 24px rgba(180, 140, 220, 0.45), inset 0 0 0 1px rgba(141, 106, 175, 0.85);
+  animation-duration: 1.5s;
+}
+@keyframes ringOut {
+  0% { opacity: 0.95; transform: translate(-50%, -50%) scale(0.32); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+}
+@keyframes pillarRise {
+  0% { opacity: 0; transform: translateX(-50%) scaleY(0.15); }
+  32% { opacity: 0.95; transform: translateX(-50%) scaleY(1); }
+  100% { opacity: 0; transform: translateX(-50%) scaleY(1.08); }
+}
+@keyframes stampIn {
+  0% { opacity: 0; transform: translate(-50%, -180%) scale(1.35); }
+  16% { opacity: 1; transform: translate(-50%, -125%) scale(1); }
+  70% { opacity: 1; transform: translate(-50%, -125%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -150%) scale(1); }
+}
+@keyframes sheenPass {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
+@keyframes calloutIn {
+  0% { opacity: 0; transform: translate(-50%, -16px) scale(1.28); }
+  24% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  70% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -8px) scale(0.98); }
 }

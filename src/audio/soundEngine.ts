@@ -1,13 +1,5 @@
 import type { Rarity } from '../types/game'
 
-const FLIP_NOTES: Record<Rarity, readonly number[]> = {
-  N: [523, 659],
-  R: [587, 740],
-  SR: [659, 831, 988],
-  SSR: [784, 988, 1175],
-  SECRET: [880, 1175, 1568, 1760],
-}
-
 /** 用 Web Audio 实时合成点击、撕裂、爆发和翻卡，不加载外部音频。 */
 class SoundEngine {
   private ctx: AudioContext | null = null
@@ -49,20 +41,66 @@ class SoundEngine {
     this.tone(pitch, 0.06, 'sawtooth', 0, 0.02)
   }
 
-  /** 撕开瞬间的金光和弦与一道噪声光柱。 */
-  burst() {
+  /** 撕开瞬间的光柱。包里最高品级越高，和弦越亮、越长。 */
+  burst(rarity: Rarity = 'N') {
     if (!this.ready()) return
-    this.noiseBurst(0.7, 400, 2400, 0.1)
-    for (const [index, freq] of [392, 494, 587, 784].entries()) {
-      this.tone(freq, 0.85, 'triangle', index * 0.03, 0.06)
+    const high = rarity === 'SR' || rarity === 'SSR' || rarity === 'SECRET'
+    this.noiseBurst(high ? 0.85 : 0.55, high ? 280 : 500, rarity === 'SECRET' ? 4200 : 2400, high ? 0.11 : 0.08)
+    const chord =
+      rarity === 'SECRET'
+        ? [392, 494, 587, 784, 988]
+        : rarity === 'SSR'
+          ? [392, 494, 587, 784]
+          : rarity === 'SR'
+            ? [349, 440, 554]
+            : [392, 494, 587]
+    for (const [index, freq] of chord.entries()) {
+      this.tone(freq, rarity === 'SECRET' ? 1.15 : 0.85, 'triangle', index * 0.04, rarity === 'N' ? 0.045 : 0.06)
+    }
+    if (rarity === 'SR') this.drop(180, 0.2, 0.06)
+    if (rarity === 'SSR' || rarity === 'SECRET') {
+      this.drop(rarity === 'SECRET' ? 90 : 140, 0.34, 0.07)
+      this.glide(440, rarity === 'SECRET' ? 1760 : 1175, 0.7, 'sine', 0.05, 0.03)
     }
   }
 
-  /** 翻卡和弦随稀有度加音。 */
+  /** 翻开时按品级给不同的声音：纸响、拨弦、落印、金弦、钟鸣。 */
   flip(rarity: Rarity) {
     if (!this.ready()) return
-    for (const [index, freq] of FLIP_NOTES[rarity].entries()) {
-      this.tone(freq, 0.28, 'sine', index * 0.045, rarity === 'SECRET' ? 0.07 : 0.05)
+    if (rarity === 'N') {
+      this.noiseBurst(0.07, 1400, 2100, 0.03)
+      this.tone(349, 0.09, 'sine', 0.01, 0.03)
+      return
+    }
+    if (rarity === 'R') {
+      this.tone(523, 0.14, 'triangle', 0, 0.045)
+      this.tone(659, 0.18, 'triangle', 0.07, 0.038)
+      return
+    }
+    if (rarity === 'SR') {
+      this.drop(210, 0.16, 0.07)
+      this.noiseBurst(0.16, 700, 2400, 0.045)
+      this.tone(587, 0.2, 'triangle', 0.04, 0.05)
+      this.tone(740, 0.24, 'triangle', 0.1, 0.044)
+      this.tone(988, 0.28, 'sine', 0.16, 0.036)
+      return
+    }
+    if (rarity === 'SSR') {
+      this.drop(160, 0.28, 0.06)
+      this.noiseBurst(0.42, 280, 3400, 0.06)
+      this.glide(392, 1175, 0.55, 'sine', 0.02, 0.032)
+      for (const [index, freq] of [523, 659, 784, 1047].entries()) {
+        this.tone(freq, 0.72, 'triangle', index * 0.06, 0.048)
+      }
+      this.tone(1568, 0.36, 'sine', 0.22, 0.026)
+      return
+    }
+    this.drop(92, 0.45, 0.08)
+    this.noiseBurst(0.85, 180, 4600, 0.07)
+    this.glide(330, 1760, 0.9, 'sine', 0.06, 0.034)
+    for (const [index, freq] of [523, 784, 1047, 1319, 1568].entries()) {
+      this.tone(freq, 1.15, 'triangle', 0.08 + index * 0.09, 0.042)
+      this.tone(freq * 1.01, 1.05, 'sine', 0.1 + index * 0.09, 0.016)
     }
   }
 
@@ -107,6 +145,51 @@ class SoundEngine {
     osc.frequency.setValueAtTime(freq, start)
     gain.gain.setValueAtTime(0.0001, start)
     gain.gain.exponentialRampToValueAtTime(peak, start + 0.018)
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
+    osc.connect(gain)
+    gain.connect(this.master)
+    osc.start(start)
+    osc.stop(start + duration + 0.02)
+  }
+
+  /** 音高往上滑，高等级翻开时有一道上升的光。 */
+  private glide(
+    from: number,
+    to: number,
+    duration: number,
+    type: OscillatorType,
+    when: number,
+    peak: number,
+  ) {
+    if (!this.ready() || !this.master) return
+    const ctx = this.context()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    const start = ctx.currentTime + when
+    osc.type = type
+    osc.frequency.setValueAtTime(from, start)
+    osc.frequency.exponentialRampToValueAtTime(to, start + duration)
+    gain.gain.setValueAtTime(0.0001, start)
+    gain.gain.exponentialRampToValueAtTime(peak, start + 0.03)
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
+    osc.connect(gain)
+    gain.connect(this.master)
+    osc.start(start)
+    osc.stop(start + duration + 0.02)
+  }
+
+  /** 一下闷击，音高很快落下去。 */
+  private drop(freq: number, duration: number, peak: number) {
+    if (!this.ready() || !this.master) return
+    const ctx = this.context()
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    const start = ctx.currentTime
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(freq, start)
+    osc.frequency.exponentialRampToValueAtTime(Math.max(40, freq * 0.45), start + duration)
+    gain.gain.setValueAtTime(0.0001, start)
+    gain.gain.exponentialRampToValueAtTime(peak, start + 0.012)
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration)
     osc.connect(gain)
     gain.connect(this.master)

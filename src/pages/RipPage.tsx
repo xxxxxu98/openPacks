@@ -19,6 +19,23 @@ import type { CardDef, DrawnCard, Rarity } from '../types/game'
 
 const TEAR_LIMIT = 0.78
 
+/** 全部翻开时，这一张翻完再等多久才翻下一张。高等级多留一拍。 */
+const FLIP_GAP: Record<Rarity, number> = {
+  N: 170,
+  R: 220,
+  SR: 540,
+  SSR: 820,
+  SECRET: 1180,
+}
+
+const BURST_WAIT: Record<Rarity, number> = {
+  N: 900,
+  R: 980,
+  SR: 1120,
+  SSR: 1320,
+  SECRET: 1560,
+}
+
 type Phase = 'pick' | 'sealed' | 'burst' | 'reveal'
 
 type Ceremony = {
@@ -61,12 +78,14 @@ function createOpening(): Ceremony {
   return blankCeremony()
 }
 
-/** 拆卡室：摇包看封边，撕开或回弹，金光之后再逐张翻开。 */
+/** 拆卡室：摇包看封边，撕开或回弹，金光之后再逐张翻开。高等级翻开时单独给光和声音。 */
 export function RipPage() {
   const state = useGameState()
   const [ceremony, setCeremony] = useState<Ceremony>(createOpening)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [packDetailId, setPackDetailId] = useState<string | null>(null)
+  const [announce, setAnnounce] = useState('')
+  const [gradeHit, setGradeHit] = useState<Rarity | null>(null)
   const tearRef = useRef(0)
   const packIdRef = useRef<string | null>(ceremony.packId)
   const rollRef = useRef<CardDef[]>(ceremony.roll)
@@ -75,36 +94,72 @@ export function RipPage() {
   const committed = useRef(false)
   const raf = useRef(0)
   const burstTimer = useRef(0)
+  const flipQueue = useRef<number[]>([])
+  const gradeTimer = useRef(0)
+  const gradeToken = useRef(0)
+  const flippedRef = useRef<Record<string, boolean>>({})
 
   packIdRef.current = ceremony.packId
   rollRef.current = ceremony.roll
   tearRef.current = ceremony.tear
+  flippedRef.current = ceremony.flipped
+
+  const clearFlipQueue = () => {
+    for (const id of flipQueue.current) window.clearTimeout(id)
+    flipQueue.current = []
+  }
+
+  const clearGrade = () => {
+    window.clearTimeout(gradeTimer.current)
+    gradeToken.current += 1
+    document.documentElement.classList.remove('is-screen-shaking')
+    delete document.documentElement.dataset.shake
+  }
 
   useEffect(() => {
     consumeRipToken()
     return () => {
       cancelAnimationFrame(raf.current)
       window.clearTimeout(burstTimer.current)
+      for (const id of flipQueue.current) window.clearTimeout(id)
+      window.clearTimeout(gradeTimer.current)
+      document.documentElement.classList.remove('is-screen-shaking')
+      delete document.documentElement.dataset.shake
     }
   }, [])
 
-  /** 爆开时震一下屏幕，并通知背景洒出金屑。 */
+  /** 爆开时按这一包最高品级震屏幕，并洒对应颜色的碎光。 */
   useEffect(() => {
-    if (ceremony.phase !== 'burst') return
-    document.documentElement.classList.add('is-screen-shaking')
-    window.dispatchEvent(new Event('prism-burst'))
-    const timer = window.setTimeout(() => document.documentElement.classList.remove('is-screen-shaking'), 340)
+    if (ceremony.phase !== 'burst' || ceremony.drawn.length === 0) return
+    const best = bestRarity(ceremony.drawn.map((item) => getCard(item.cardId)))
+    const root = document.documentElement
+    root.classList.add('is-screen-shaking')
+    const kind = best === 'SECRET' ? 'hard' : best === 'SSR' ? 'mid' : best === 'SR' ? 'soft' : ''
+    if (kind) root.dataset.shake = kind
+    else delete root.dataset.shake
+    window.dispatchEvent(new CustomEvent('prism-burst', { detail: { rarity: best } }))
+    const hold = best === 'SECRET' ? 620 : best === 'SSR' ? 480 : 340
+    const timer = window.setTimeout(() => {
+      root.classList.remove('is-screen-shaking')
+      delete root.dataset.shake
+    }, hold)
     return () => {
       window.clearTimeout(timer)
-      document.documentElement.classList.remove('is-screen-shaking')
+      root.classList.remove('is-screen-shaking')
+      delete root.dataset.shake
     }
-  }, [ceremony.phase])
+  }, [ceremony.phase, ceremony.drawn])
 
   const begin = (id: string) => {
     cancelAnimationFrame(raf.current)
+    clearFlipQueue()
+    clearGrade()
+    setGradeHit(null)
+    setAnnounce('')
     autoRef.current = false
     committed.current = false
     tearRef.current = 0
+    flippedRef.current = {}
     setDetailId(null)
     setCeremony({
       ...blankCeremony(),
@@ -128,12 +183,15 @@ export function RipPage() {
       return
     }
     tearRef.current = 1
-    sound.burst()
-    navigator.vibrate?.(16)
+    const best = bestRarity(roll)
+    sound.burst(best)
+    if (best === 'SECRET') navigator.vibrate?.([16, 40, 24])
+    else if (best === 'SSR' || best === 'SR') navigator.vibrate?.(18)
+    else navigator.vibrate?.(12)
     setCeremony((prev) => ({ ...prev, phase: 'burst', tear: 1, drawn, spring: false }))
     burstTimer.current = window.setTimeout(() => {
       setCeremony((prev) => (prev.phase === 'burst' ? { ...prev, phase: 'reveal' } : prev))
-    }, 1050)
+    }, BURST_WAIT[best])
   }
 
   const onSealDown = (event: PointerEvent<HTMLButtonElement>) => {
@@ -208,29 +266,64 @@ export function RipPage() {
     }, 560)
   }
 
+  /** 超稀有以上压暗背景并震一下，等级越高停得越久。 */
+  const hitGrade = (rarity: Rarity) => {
+    if (RARITY_RANK[rarity] < RARITY_RANK.SR) return
+    const token = ++gradeToken.current
+    setGradeHit(rarity)
+    const root = document.documentElement
+    root.classList.add('is-screen-shaking')
+    root.dataset.shake = rarity === 'SECRET' ? 'hard' : rarity === 'SSR' ? 'mid' : 'soft'
+    if (rarity === 'SECRET') navigator.vibrate?.([18, 40, 28])
+    else if (rarity === 'SSR') navigator.vibrate?.(24)
+    else navigator.vibrate?.(12)
+    const hold = rarity === 'SECRET' ? 1500 : rarity === 'SSR' ? 1200 : 900
+    window.clearTimeout(gradeTimer.current)
+    gradeTimer.current = window.setTimeout(() => {
+      if (gradeToken.current !== token) return
+      setGradeHit(null)
+      root.classList.remove('is-screen-shaking')
+      delete root.dataset.shake
+    }, hold)
+  }
+
   const flipOne = (item: DrawnCard) => {
-    if (ceremony.flipped[item.instanceId]) return
-    sound.flip(getCard(item.cardId).rarity)
+    if (flippedRef.current[item.instanceId]) return
+    flippedRef.current = { ...flippedRef.current, [item.instanceId]: true }
+    const card = getCard(item.cardId)
+    sound.flip(card.rarity)
+    const node = document.querySelector<HTMLElement>(`[data-instance="${CSS.escape(item.instanceId)}"]`)
+    const rect = node?.getBoundingClientRect()
+    window.dispatchEvent(
+      new CustomEvent('grade-reveal', {
+        detail: {
+          rarity: card.rarity,
+          x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
+          y: rect ? rect.top + rect.height * 0.42 : window.innerHeight * 0.46,
+        },
+      }),
+    )
+    hitGrade(card.rarity)
+    setAnnounce(`${RARITY_LABEL[card.rarity]}，${card.name}`)
     setCeremony((prev) => ({
       ...prev,
       flipped: { ...prev.flipped, [item.instanceId]: true },
     }))
   }
 
+  /** 从左到右逐张翻开，高等级翻开后多停一拍。 */
   const flipAll = () => {
-    const pending = ceremony.drawn.some((item) => !ceremony.flipped[item.instanceId])
+    const pending = ceremony.drawn.some((item) => !flippedRef.current[item.instanceId])
     if (!pending) return
-    let top: Rarity = 'N'
+    clearFlipQueue()
+    let wait = 0
     for (const item of ceremony.drawn) {
+      if (flippedRef.current[item.instanceId]) continue
       const rarity = getCard(item.cardId).rarity
-      if (RARITY_RANK[rarity] > RARITY_RANK[top]) top = rarity
+      const delay = wait
+      flipQueue.current.push(window.setTimeout(() => flipOne(item), delay))
+      wait += FLIP_GAP[rarity]
     }
-    sound.flip(top)
-    setCeremony((prev) => {
-      const flipped = { ...prev.flipped }
-      for (const item of prev.drawn) flipped[item.instanceId] = true
-      return { ...prev, flipped }
-    })
   }
 
   const detail = ceremony.drawn.find((item) => item.instanceId === detailId) ?? null
@@ -243,9 +336,23 @@ export function RipPage() {
   return (
     <section className="page rip-room">
       <p className="sr-only" aria-live="polite">
-        {ceremony.phase === 'reveal' ? '封口已撕开，可以翻卡' : ''}
+        {announce || (ceremony.phase === 'reveal' ? '封口已撕开，可以翻卡' : '')}
       </p>
-      {ceremony.phase === 'burst' && <div className="golden-flash" aria-hidden />}
+      {ceremony.phase === 'burst' && ceremony.drawn.length > 0 && (
+        <div
+          className="golden-flash"
+          data-rarity={bestRarity(ceremony.drawn.map((item) => getCard(item.cardId)))}
+          aria-hidden
+        />
+      )}
+      {gradeHit && (
+        <>
+          <div className={`grade-flash grade-${gradeHit}`} aria-hidden />
+          <div className={`grade-callout callout-${gradeHit}`} aria-hidden>
+            <b>{RARITY_LABEL[gradeHit]}</b>
+          </div>
+        </>
+      )}
 
       {ceremony.phase === 'pick' && ownedPacks.length === 0 && (
         <div className="empty">
@@ -335,6 +442,7 @@ export function RipPage() {
                     <div
                       key={item.instanceId}
                       className="fan-pop"
+                      data-instance={item.instanceId}
                       style={{ animationDelay: `${index * 80}ms` }}
                     >
                       <CardVisual

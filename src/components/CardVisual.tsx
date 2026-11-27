@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { RARITY_LABEL, formatSerial } from '../data/catalog'
 import { SEASON_LABEL } from '../data/solarTerms'
@@ -13,6 +14,15 @@ const RANK: Record<Rarity, string> = {
   SSR: '特',
   SECRET: '秘',
 }
+/** 翻开后动效留存的时间，秘藏最长。 */
+const REVEAL_HOLD: Record<Rarity, number> = {
+  N: 480,
+  R: 640,
+  SR: 1200,
+  SSR: 1600,
+  SECRET: 2000,
+}
+const HIGH_GRADE: ReadonlySet<Rarity> = new Set(['SR', 'SSR', 'SECRET'])
 
 type CardVisualProps = {
   card: CardDef
@@ -39,11 +49,21 @@ export function CardVisual({
   const tilt = usePointerTilt<HTMLDivElement>()
   const pose = tilt.pose
   const showFront = !flippable || flipped
+  const [revealing, setRevealing] = useState(false)
+
+  /** 翻开后短时间挂上品级动效，时间到了再交回指针倾斜。 */
+  useEffect(() => {
+    if (!flippable || !flipped) return
+    setRevealing(true)
+    const timer = window.setTimeout(() => setRevealing(false), REVEAL_HOLD[card.rarity])
+    return () => window.clearTimeout(timer)
+  }, [flippable, flipped, card.rarity])
   const lift = card.rarity === 'SECRET' ? 1.85 : card.rarity === 'SSR' ? 1.55 : card.rarity === 'SR' ? 1.28 : card.rarity === 'R' ? 1.08 : 0.7
   const tiltX = still ? 0 : pose.rotateX * lift
   const tiltY = still ? 0 : pose.rotateY * lift
   const spin = flippable ? (flipped ? 180 : 0) + tiltY : tiltY
   const silk = card.rarity === 'SSR' || card.rarity === 'SECRET'
+  const high = HIGH_GRADE.has(card.rarity)
 
   const face = (
     <div
@@ -88,6 +108,15 @@ export function CardVisual({
 
   return (
     <div className={`card-visual${still ? ' is-steady' : ''}`} data-size={size} data-rarity={card.rarity}>
+      <div className={`card-stage${revealing ? ` is-revealing reveal-${card.rarity}` : ''}`}>
+      {revealing && (
+        <div className="reveal-aura" aria-hidden>
+          <i className="reveal-pillar" />
+          <i className="reveal-ring" />
+          {card.rarity === 'R' ? <i className="reveal-ring echo" /> : null}
+          {card.rarity === 'SECRET' ? <i className="reveal-ring alt" /> : null}
+        </div>
+      )}
       <div
         className={`tcg-card rarity-${card.rarity}${showFront && flippable ? ' is-flipped' : ''}${tilt.resting ? '' : ' is-tilting'}${flippable ? '' : ' is-shown'}`}
         ref={tilt.ref}
@@ -127,6 +156,9 @@ export function CardVisual({
           </div>
         )}
         {face}
+      </div>
+      {revealing && high && <b className="reveal-stamp">{RARITY_LABEL[card.rarity]}</b>}
+      {revealing && high && <i className="reveal-sheen" aria-hidden />}
       </div>
     </div>
   )

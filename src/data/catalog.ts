@@ -29,11 +29,11 @@ export const RARITY_LABEL: Record<Rarity, string> = {
 }
 
 export const RARITY_TONE: Record<Rarity, string> = {
-  N: '#a8b0be',
-  R: '#79c7ff',
-  SR: '#d2a6ff',
-  SSR: '#f2c14e',
-  SECRET: '#ff5d7a',
+  N: '#b7aea2',
+  R: '#7eb6de',
+  SR: '#5dccb0',
+  SSR: '#f0d48a',
+  SECRET: '#d7c4ef',
 }
 
 export const SALVAGE: Record<Rarity, number> = {
