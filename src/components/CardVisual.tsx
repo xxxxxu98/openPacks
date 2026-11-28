@@ -132,8 +132,9 @@ export function CardVisual({
         <span className="leaf-rank">{RANK[card.rarity]}</span>
       </div>
       <div className="plate-copy">
-        <h3 className="plate-name">{card.name}</h3>
-        <p className="plate-verse">{card.verse}</p>
+        {/* 渊柜卡面只印编号和品级。 */}
+        {card.seriesId === 'abyss' ? null : <h3 className="plate-name">{card.name}</h3>}
+        {card.seriesId === 'abyss' ? null : <p className="plate-verse">{card.verse}</p>}
         <footer className="leaf-foot">
           <span>{formatSerial(card)}</span>
           <span className="leaf-grade">{RARITY_LABEL[card.rarity]}</span>

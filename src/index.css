@@ -2812,27 +2812,11 @@ button.tear-track:active { cursor: grabbing; }
   line-height: 1.35;
   opacity: 0.88;
 }
-/* 渊柜的卡名印进画面上的标本图签，不跟下沿题款挤在一起。 */
+/* 渊柜下沿只留编号和品级，直接印在纸上。 */
 .card-front.is-plate.is-abyss .plate-copy {
-  top: 0;
-  padding: 0 5.5% 3.2%;
-  justify-content: flex-end;
-  background: linear-gradient(180deg, transparent 0 89%, rgba(12, 10, 8, 0.62) 94%, rgba(12, 10, 8, 0.88));
-}
-.card-front.is-plate.is-abyss .plate-name {
-  position: absolute;
-  left: 18%;
-  right: 18%;
-  top: 84.2%;
-  margin: 0;
-  transform: translateY(-50%);
-  color: #2a2418;
-  font-size: 4.4cqi;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  line-height: 1;
-  text-indent: 0.16em;
-  text-shadow: 0 0 6px rgba(244, 238, 226, 0.95);
+  padding: 0 5% 3.2%;
+  background: none;
+  color: #2c261c;
 }
 .card-front.is-plate .card-glare {
   z-index: 4;
