@@ -1047,11 +1047,17 @@ button.tear-track:active { cursor: grabbing; }
   transform: translateZ(0);
 }
 .card-visual.is-thick .tcg-card { transform-style: preserve-3d; overflow: visible; }
-.card-visual.is-thick .card-front {
+.card-visual.is-thick.is-steady .card-front {
   transform: translateZ(calc(var(--card-depth) / 2));
 }
-.card-visual.is-thick .card-back {
+.card-visual.is-thick.is-steady .card-back {
   transform: rotateY(180deg) translateZ(calc(var(--card-depth) / 2));
+}
+.card-visual.is-thick:not(.is-steady) .card-front {
+  transform: rotateY(180deg) translateZ(calc(var(--card-depth) / 2));
+}
+.card-visual.is-thick:not(.is-steady) .card-back {
+  transform: translateZ(calc(var(--card-depth) / 2));
 }
 .card-board {
   position: absolute;
@@ -2381,9 +2387,9 @@ button.tear-track:active { cursor: grabbing; }
 }
 .card-visual:has(.is-revealing.reveal-SECRET) { animation-duration: 1.08s; }
 @keyframes cardLift {
-  0% { transform: translateY(20px) scale(0.7); filter: brightness(2.6); }
-  34% { transform: translateY(-16px) scale(1.18); filter: brightness(1.4); }
-  100% { transform: translateY(0) scale(1); filter: brightness(1); }
+  0% { transform: translateY(20px) scale(0.7); }
+  34% { transform: translateY(-16px) scale(1.18); }
+  100% { transform: translateY(0) scale(1); }
 }
 
 /* 高等级翻开：从这张卡炸开的整屏演出。 */
@@ -2678,6 +2684,7 @@ button.tear-track:active { cursor: grabbing; }
 }
 /* 拖拽改倾斜，滚轮改大小。 */
 .grade-pose {
+  position: relative;
   width: 100%;
   transform-style: preserve-3d;
   transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
@@ -2687,7 +2694,12 @@ button.tear-track:active { cursor: grabbing; }
 }
 .grade-pose.is-dragging { cursor: grabbing; transition: none; }
 .grade-pose img { -webkit-user-drag: none; }
+/* 光晕垫在卡后。 */
 .grade-hero-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 15px;
+  pointer-events: none;
   animation: heroGlow 2.6s ease-in-out calc(var(--hit) + 0.28s) infinite;
 }
 .card-foil {
@@ -2786,12 +2798,9 @@ button.tear-track:active { cursor: grabbing; }
   animation: nameRise 0.5s ease calc(var(--hit) + 0.16s) both;
 }
 @keyframes heroIn {
-  0% {
-    transform: translate(-50%, -50%) translate(calc(var(--ox) - 50vw), calc(var(--oy) - 46vh)) scale(0.4);
-    filter: brightness(1.08);
-  }
-  60% { transform: translate(-50%, -50%) scale(1.08); filter: brightness(2.2); }
-  100% { transform: translate(-50%, -50%) scale(1); filter: brightness(1); }
+  0% { transform: translate(-50%, -50%) translate(calc(var(--ox) - 50vw), calc(var(--oy) - 46vh)) scale(0.4); }
+  60% { transform: translate(-50%, -50%) scale(1.08); }
+  100% { transform: translate(-50%, -50%) scale(1); }
 }
 @keyframes gradeFade {
   to { opacity: 0; }
@@ -2801,8 +2810,8 @@ button.tear-track:active { cursor: grabbing; }
   to { opacity: 1; }
 }
 @keyframes heroGlow {
-  0%, 100% { filter: drop-shadow(0 0 16px var(--glow)); }
-  50% { filter: drop-shadow(0 0 34px var(--glow)) drop-shadow(0 0 10px #fff); }
+  0%, 100% { box-shadow: 0 0 16px var(--glow); }
+  50% { box-shadow: 0 0 34px var(--glow), 0 0 10px #fff; }
 }
 @keyframes lineBurst {
   0% { opacity: 0; transform: scale(0.72); }

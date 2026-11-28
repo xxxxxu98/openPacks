@@ -488,6 +488,7 @@ export function RipPage() {
                       <CardVisual
                         card={card}
                         flippable
+                        thick
                         flipped={Boolean(ceremony.flipped[item.instanceId])}
                         isNew={item.isNew}
                         onFlip={() => flipOne(item)}

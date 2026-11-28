@@ -169,9 +169,8 @@ export function GradeSpectacle({ rarity, card, isNew, x, y, onClose }: GradeSpec
                 onPointerCancel={pose.onPointerUp}
                 onDragStart={(event) => event.preventDefault()}
               >
-                <div className="grade-hero-glow">
-                  <CardVisual card={card} size="lg" still sweep isNew={isNew} />
-                </div>
+                <i className="grade-hero-glow" aria-hidden />
+                <CardVisual card={card} size="lg" still thick sweep isNew={isNew} />
               </div>
             </div>
           </div>
