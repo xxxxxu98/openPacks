@@ -32,28 +32,31 @@ export function ShopPage() {
   }
 
   return (
-    <section className="page">
+    <section className="page page-split">
       {receipt && (
         <p className="shop-toast" role="status" key={receipt.tick}>
           已入手 {receipt.name}，现有 ×{receipt.stock}
         </p>
       )}
-      <div className="section-head">
-        <div>
-          <h1>卡包补给</h1>
-          <p>
-            {PACK_SERIES.length === 0
-              ? '货架空着。'
-              : '每种卡包单独一池。购买时按保底分低爆、中爆、高爆。'}
-          </p>
+      <div className="page-chrome">
+        <div className="section-head">
+          <div>
+            <h1>卡包补给</h1>
+            <p>
+              {PACK_SERIES.length === 0
+                ? '货架空着。'
+                : '每种卡包单独一池。购买时按保底分低爆、中爆、高爆。'}
+            </p>
+          </div>
         </div>
       </div>
-      {PACK_SERIES.length === 0 && (
-        <div className="empty">
-          <p>还没有卡包。</p>
-        </div>
-      )}
-      {PACK_SERIES.map((series) => {
+      <div className="view-scroll">
+        {PACK_SERIES.length === 0 && (
+          <div className="empty">
+            <p>还没有卡包。</p>
+          </div>
+        )}
+        {PACK_SERIES.map((series) => {
         const offers = listOffers(series.id)
         if (offers.length === 0) return null
         return (
@@ -99,7 +102,8 @@ export function ShopPage() {
             </div>
           </section>
         )
-      })}
+        })}
+      </div>
       {detailId && <PackDetail offerId={detailId} onClose={() => setDetailId(null)} />}
     </section>
   )

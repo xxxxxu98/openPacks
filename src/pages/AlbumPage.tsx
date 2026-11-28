@@ -31,49 +31,58 @@ export function AlbumPage() {
   }
 
   return (
-    <section className="page">
-      <div className="section-head dex-head">
-        <div className="dex-title">
-          <h1>{title}</h1>
-          <span className="progress-pill">
-            {String(collected).padStart(width, '0')} / {pool.length}
-          </span>
-        </div>
-        {PACK_SERIES.length > 1 && (
-          <div className="filters" role="tablist" aria-label="按卡包筛选">
-            <button type="button" className={seriesId === 'ALL' ? 'is-on' : ''} aria-pressed={seriesId === 'ALL'} onClick={() => setSeriesId('ALL')}>
-              全部卡包
-            </button>
-            {PACK_SERIES.map((series) => (
-              <button
-                key={series.id}
-                type="button"
-                className={seriesId === series.id ? 'is-on' : ''}
-                aria-pressed={seriesId === series.id}
-                onClick={() => setSeriesId(series.id)}
-              >
-                {series.name}
-              </button>
-            ))}
+    <section className="page page-split">
+      <div className="page-chrome">
+        <div className="section-head dex-head">
+          <div className="dex-title">
+            <h1>{title}</h1>
+            <span className="progress-pill">
+              {String(collected).padStart(width, '0')} / {pool.length}
+            </span>
           </div>
-        )}
-        <div className="filters" role="tablist" aria-label="按稀有度筛选">
-          {FILTERS.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className={filter === item ? 'is-on' : ''}
-              aria-pressed={filter === item}
-              onClick={() => setFilter(item)}
-            >
-              {item === 'ALL' ? '全部' : item}
-            </button>
-          ))}
+        </div>
+        <div className="dex-tabs">
+          {PACK_SERIES.length > 1 && (
+            <div className="tab-scroll">
+              <div className="filters" role="tablist" aria-label="按卡包筛选">
+                <button type="button" className={seriesId === 'ALL' ? 'is-on' : ''} aria-pressed={seriesId === 'ALL'} onClick={() => setSeriesId('ALL')}>
+                  全部卡包
+                </button>
+                {PACK_SERIES.map((series) => (
+                  <button
+                    key={series.id}
+                    type="button"
+                    className={seriesId === series.id ? 'is-on' : ''}
+                    aria-pressed={seriesId === series.id}
+                    onClick={() => setSeriesId(series.id)}
+                  >
+                    {series.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="tab-scroll">
+            <div className="filters" role="tablist" aria-label="按稀有度筛选">
+              {FILTERS.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  className={filter === item ? 'is-on' : ''}
+                  aria-pressed={filter === item}
+                  onClick={() => setFilter(item)}
+                >
+                  {item === 'ALL' ? '全部' : item}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="dex-bar" aria-hidden>
+          <span style={{ width: `${pool.length === 0 ? 0 : (collected / pool.length) * 100}%` }} />
         </div>
       </div>
-      <div className="dex-bar" aria-hidden>
-        <span style={{ width: `${pool.length === 0 ? 0 : (collected / pool.length) * 100}%` }} />
-      </div>
+      <div className="view-scroll" key={`${seriesId}:${filter}`}>
       <div className="binder">
         {visible.map((card) => {
           const count = state.owned[card.id] ?? 0
@@ -121,6 +130,7 @@ export function AlbumPage() {
             重置存档
           </button>
         )}
+      </div>
       </div>
 
       {active && <CardInspect card={active} onClose={() => setActiveId(null)} />}
