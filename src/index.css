@@ -1365,6 +1365,48 @@ button.tear-track:active { cursor: grabbing; }
   color: #6b5a48;
   letter-spacing: 0.16em;
 }
+.foil-pack-wrapper:not(.is-paper) .pack-body::before,
+.foil-pack-wrapper:not(.is-paper) .pack-cap-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 22%, color-mix(in srgb, var(--pack-accent, #8e3a38) 42%, transparent), transparent 64%);
+}
+.pack-window {
+  position: relative;
+  z-index: 2;
+  width: 148px;
+  height: 168px;
+  margin: 0 auto 2px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow:
+    0 12px 22px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.42);
+}
+.pack-window img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 28%;
+}
+.pack-window-seal {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #8e3a38;
+  background: rgba(247, 241, 228, 0.94);
+  color: #8e3a38;
+  font-family: "Noto Serif SC", "Songti SC", "STSong", SimSun, serif;
+  font-size: 13px;
+  font-style: normal;
+  line-height: 1;
+}
 .pack-seal {
   position: relative;
   z-index: 2;

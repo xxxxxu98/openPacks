@@ -2,6 +2,7 @@ import type { CSSProperties, KeyboardEvent, PointerEvent } from 'react'
 import { usePointerTilt } from '../hooks/usePointerTilt'
 import type { Rarity } from '../types/game'
 import { getOffer } from '../data/catalog'
+import { plateSrc } from './PlateArt'
 
 const PEEK: Partial<Record<Rarity, string>> = {
   N: 'active-N',
@@ -27,7 +28,7 @@ type PackVisualProps = {
   onSealKey?: (delta: number) => void
 }
 
-/** 卡包外观。纸封撕开时只走封条，箔封开口随进度抬起。 */
+/** 卡包外观。节气是纸封，其余套在箔封中间嵌一张封面。 */
 export function PackVisual({
   offerId,
   size = 'md',
@@ -46,6 +47,7 @@ export function PackVisual({
   const tilt = usePointerTilt<HTMLDivElement>()
   const pack = getOffer(offerId)
   const paper = pack.seriesId === 'solar'
+  const coverSrc = pack.cover ? plateSrc(pack.cover) : ''
   const pose = tilt.pose
   const ratio = Math.max(0, Math.min(1, tear))
   const vars = {
@@ -92,6 +94,7 @@ export function PackVisual({
         style={
           {
             ...vars,
+            '--pack-accent': pack.accent,
             transform: `rotateX(${pose.rotateX}deg) rotateY(${pose.rotateY}deg)`,
           } as CSSProperties
         }
@@ -137,9 +140,16 @@ export function PackVisual({
             <span className="gold-foil-text">{pack.code}</span>
             <span className="pack-badge">{pack.edition}</span>
           </div>
-          <div className="pack-seal" aria-hidden>
-            <span>岁</span>
-          </div>
+          {coverSrc ? (
+            <div className="pack-window" aria-hidden>
+              <img src={coverSrc} alt="" />
+              <i className="pack-window-seal">岁</i>
+            </div>
+          ) : (
+            <div className="pack-seal" aria-hidden>
+              <span>岁</span>
+            </div>
+          )}
           <div className="pack-edition">
             <strong>{pack.seriesName}</strong>
             <span>

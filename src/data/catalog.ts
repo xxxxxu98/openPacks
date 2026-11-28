@@ -73,6 +73,7 @@ export const PACK_SERIES: readonly PackSeries[] = [
     blurb: '十二生肖，各有本相和瑞相。',
     accent: '#8e3a38',
     crest: 'torus',
+    cover: 'zodiac/15',
   },
   {
     id: 'abyss',
@@ -81,6 +82,7 @@ export const PACK_SERIES: readonly PackSeries[] = [
     blurb: '潮声研究所的深海标本。',
     accent: '#1e4f78',
     crest: 'plus',
+    cover: 'abyss/08',
   },
   {
     id: 'sill',
@@ -89,6 +91,7 @@ export const PACK_SERIES: readonly PackSeries[] = [
     blurb: '这栋楼窗台上的二十四个品种。',
     accent: '#3f6b56',
     crest: 'planet',
+    cover: 'sill/10',
   },
   {
     id: 'circus',
@@ -97,14 +100,16 @@ export const PACK_SERIES: readonly PackSeries[] = [
     blurb: '旧衣服缝成的马戏团。',
     accent: '#c4622d',
     crest: 'torus',
+    cover: 'circus/01',
   },
   {
     id: 'train',
     name: '末班电车',
     code: '末班',
-    blurb: '二十四点发出的那一班。',
+    blurb: '零点发出的那一班。',
     accent: '#5c3478',
     crest: 'plus',
+    cover: 'train/12',
   },
   {
     id: 'beetle',
@@ -113,6 +118,7 @@ export const PACK_SERIES: readonly PackSeries[] = [
     blurb: '一只二十四格的标本匣。',
     accent: '#146b56',
     crest: 'planet',
+    cover: 'beetle/01',
   },
   {
     id: 'kitchen',
@@ -121,6 +127,7 @@ export const PACK_SERIES: readonly PackSeries[] = [
     blurb: '只做第二道菜的小馆。',
     accent: '#8a6424',
     crest: 'torus',
+    cover: 'kitchen/08',
   },
   {
     id: 'pixel',
@@ -129,6 +136,7 @@ export const PACK_SERIES: readonly PackSeries[] = [
     blurb: '一枚没上市的卡带，里面二十四间房。',
     accent: '#1e4f78',
     crest: 'plus',
+    cover: 'pixel/23',
   },
   {
     id: 'musicbox',
@@ -137,6 +145,7 @@ export const PACK_SERIES: readonly PackSeries[] = [
     blurb: '钟表匠留下的二十四只盒子。',
     accent: '#8a6424',
     crest: 'planet',
+    cover: 'musicbox/02',
   },
 ]
 
@@ -211,6 +220,7 @@ function toOffer(series: PackSeries, tier: RateTierDef): PackOffer {
     crest: series.crest,
     theme: tier.theme,
     edition: tier.edition,
+    cover: series.cover,
   }
 }
 

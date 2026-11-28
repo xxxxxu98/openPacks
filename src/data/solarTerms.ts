@@ -123,8 +123,8 @@ export const SOLAR_CARDS: readonly CardDef[] = [
     scene: 'mangzhong',
     phenology: ['螳螂生', '鵙始鸣', '反舌无声'],
     span: '约 6 月 6 日',
-    verse: '芒针亮处已有人',
-    flavor: '麦芒亮起来的时候，田里已经有人。螳螂刚生，伯劳开始叫，百舌却不作声。',
+    verse: '麦芒亮处鵙先鸣',
+    flavor: '麦芒亮起来。螳螂停在穗上，伯劳立在桩头，百舌却不作声。',
   },
   {
     id: 'xiazhi',

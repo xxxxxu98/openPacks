@@ -3,7 +3,7 @@ const plates = import.meta.glob('../assets/plates/*/*.jpg', {
   import: 'default',
 }) as Record<string, string>
 
-function plateSrc(art: string) {
+export function plateSrc(art: string) {
   const entry = Object.entries(plates).find(([path]) => path.endsWith(`/${art}.jpg`))
   return entry?.[1] ?? ''
 }

@@ -2,7 +2,7 @@
   "name": "open-packs",
   "private": true,
   "version": "0.1.0",
-  "description": "二十四节气拆卡收藏，在浏览器里撕开卡包。",
+  "description": "十套拆卡收藏，在浏览器里撕开卡包。",
   "license": "MIT",
   "type": "module",
   "engines": {

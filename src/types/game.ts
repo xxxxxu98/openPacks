@@ -96,6 +96,8 @@ export interface PackSeries {
   blurb: string
   accent: string
   crest: PackCrest
+  /** 箔封中间的封面，指向这一套里的一张画。节气册页不用。 */
+  cover?: string
 }
 
 export interface RateTierDef {
@@ -121,6 +123,7 @@ export interface PackOffer {
   crest: PackCrest
   theme: PackTheme
   edition: string
+  cover?: string
 }
 
 export type PackInventory = Record<string, number>
