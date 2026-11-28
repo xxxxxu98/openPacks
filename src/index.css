@@ -7,7 +7,7 @@
 
 * { box-sizing: border-box; }
 
-html { color-scheme: dark; }
+html { color-scheme: dark; overflow: hidden; }
 
 html,
 body,
@@ -96,9 +96,9 @@ button { cursor: pointer; }
   align-items: center;
   overflow: hidden;
 }
-body:has(.inspect, .grade-show) .page,
-body:has(.inspect, .grade-show) .view-scroll,
-body:has(.inspect, .grade-show) .rip-center {
+body:has(.inspect, .grade-show, .settings) .page,
+body:has(.inspect, .grade-show, .settings) .view-scroll,
+body:has(.inspect, .grade-show, .settings) .rip-center {
   overflow: hidden;
 }
 
@@ -157,19 +157,6 @@ body:has(.inspect, .grade-show) .rip-center {
   50% { transform: translate(2%, -2%) scale(1.06); }
   100% { transform: translate(4%, 1%) scale(1.02); }
 }
-.studio-floor {
-  position: absolute;
-  bottom: -8%;
-  left: -10%;
-  right: -10%;
-  height: 36vh;
-  background:
-    radial-gradient(ellipse at 50% 25%, rgba(251,191,36,0.08), rgba(52,211,153,0.06) 35%, transparent 68%),
-    linear-gradient(to bottom, transparent, rgba(1,3,2,0.96) 85%);
-  border-top: 1px solid rgba(255,255,255,0.05);
-  transform: perspective(600px) rotateX(68deg);
-}
-
 .dust-canvas, .fx-canvas { position: fixed; inset: 0; pointer-events: none; }
 .dust-canvas { z-index: 1; }
 .fx-canvas { z-index: 46; mix-blend-mode: screen; }
@@ -323,6 +310,12 @@ html.is-screen-shaking[data-shake='hard'] body { animation: screenShakeHard 1.05
   background: rgba(255,255,255,0.06);
   color: #e4e4e7;
 }
+.settings-btn {
+  width: 34px;
+  padding: 0;
+  justify-content: center;
+}
+.settings-btn svg { width: 16px; height: 16px; }
 .coin {
   width: 12px;
   height: 12px;
@@ -605,6 +598,7 @@ html.is-screen-shaking[data-shake='hard'] body { animation: screenShakeHard 1.05
   border: 1px solid rgba(251, 191, 36, 0.5);
   box-shadow: 0 0 25px rgba(251, 191, 36, 0.35);
 }
+/* 拆卡区只纵向滚动。 */
 .rip-center {
   flex: 1 1 auto;
   display: flex;
@@ -612,7 +606,8 @@ html.is-screen-shaking[data-shake='hard'] body { animation: screenShakeHard 1.05
   align-items: center;
   width: 100%;
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
 }
 .rip-center::before,
@@ -1300,8 +1295,117 @@ button.tear-track:active { cursor: grabbing; }
   line-height: 1;
   color: #e7e5e4;
 }
-.reset-row { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.reset-row p { margin: 0; color: #d4d4d8; font-size: 13px; }
+.settings {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+.settings-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(12px);
+}
+.settings-panel {
+  position: relative;
+  z-index: 1;
+  width: min(420px, calc(100vw - 32px));
+  padding: 28px 24px 22px;
+  border: 1px solid rgba(142, 58, 56, 0.34);
+  background:
+    radial-gradient(90% 48% at 0% 0%, rgba(255, 255, 255, 0.55), transparent 46%),
+    #f4efe6;
+  color: #2a241c;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+.settings-panel h2 {
+  margin: 0 40px 20px 0;
+  font-family: "Noto Serif SC", "Songti SC", "STSong", SimSun, serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+}
+.settings-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(142, 58, 56, 0.55);
+  background: transparent;
+  color: #8e3a38;
+}
+.settings-close::before,
+.settings-close::after {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 50%;
+  height: 1px;
+  background: currentColor;
+}
+.settings-close::before { transform: rotate(45deg); }
+.settings-close::after { transform: rotate(-45deg); }
+.settings-close:hover { background: rgba(142, 58, 56, 0.08); }
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+}
+.settings-row > span {
+  font-family: "Noto Serif SC", "Songti SC", "STSong", SimSun, serif;
+  font-size: 16px;
+  letter-spacing: 0.18em;
+}
+.settings-choice {
+  display: flex;
+  border: 1px solid rgba(142, 58, 56, 0.4);
+}
+.settings-choice button {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: #5c4636;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+}
+.settings-choice button + button { border-left: 1px solid rgba(142, 58, 56, 0.28); }
+.settings-choice button.is-on { background: #8e3a38; color: #f7f1e4; }
+.settings-reset {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(142, 58, 56, 0.28);
+}
+.settings-reset p {
+  margin: 0;
+  color: #5c4636;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.settings-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.settings-panel .btn-ghost {
+  background: transparent;
+  color: #2a241c;
+  border-color: rgba(42, 36, 28, 0.28);
+}
+.settings-panel .btn-ghost:hover { background: rgba(142, 58, 56, 0.08); }
+.settings-panel .btn-danger {
+  color: #8e3a38;
+  border-color: rgba(142, 58, 56, 0.55);
+}
+.settings-panel .btn-danger:hover { background: rgba(142, 58, 56, 0.08); }
 
 .inspect {
   position: fixed;

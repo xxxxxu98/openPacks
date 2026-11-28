@@ -36,7 +36,7 @@ const GRADE_LOOK: Record<Rarity, GradeLook> = {
 
 const HIGH_GRADE: ReadonlySet<Rarity> = new Set(['SR', 'SSR', 'SECRET'])
 
-/** 暗房体积光、地板和漂浮微尘。高等级翻开时从卡面打出穿过整屏的光痕。 */
+/** 暗房体积光和漂浮微尘。高等级翻开时从卡面打出穿过整屏的光痕。 */
 export function Atmosphere() {
   const dustRef = useRef<HTMLCanvasElement>(null)
   const fxRef = useRef<HTMLCanvasElement>(null)
@@ -283,7 +283,6 @@ export function Atmosphere() {
         <div className="volumetric-beams" />
         <div className="studio-spotlight" />
         <div className="smoke-layer" />
-        <div className="studio-floor" />
       </div>
       <canvas ref={dustRef} className="dust-canvas" aria-hidden />
       <canvas ref={fxRef} className="fx-canvas" aria-hidden />

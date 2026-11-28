@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { CardInspect } from '../components/CardInspect'
 import { CardVisual } from '../components/CardVisual'
-import { CARDS, PACK_SERIES, cardsOfSeries, formatSerial, getCard, listOffers } from '../data/catalog'
-import { resetSave, useGameState } from '../store/useGameStore'
+import { CARDS, PACK_SERIES, cardsOfSeries, formatSerial, getCard } from '../data/catalog'
+import { useGameState } from '../store/useGameStore'
 import type { RarityFilter } from '../types/game'
 
 const FILTERS: readonly RarityFilter[] = ['ALL', 'SECRET', 'SSR', 'SR', 'R', 'N']
@@ -13,22 +13,14 @@ export function AlbumPage() {
   const [seriesId, setSeriesId] = useState('ALL')
   const [filter, setFilter] = useState<RarityFilter>('ALL')
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [confirm, setConfirm] = useState(false)
   const pool = seriesId === 'ALL' ? CARDS : cardsOfSeries(seriesId)
   const collected = pool.reduce((sum, card) => sum + ((state.owned[card.id] ?? 0) > 0 ? 1 : 0), 0)
   const width = String(pool.length).length
-  const starter = listOffers()[0]
   const seriesName = PACK_SERIES.find((series) => series.id === seriesId)?.name
   /** 全部卡包时只写图鉴，选中一套时用那一套的名字。 */
   const title = seriesId === 'ALL' ? '图鉴' : seriesName ?? '图鉴'
   const visible = pool.filter((card) => filter === 'ALL' || card.rarity === filter)
   const active = activeId ? getCard(activeId) : null
-
-  const confirmReset = () => {
-    setConfirm(false)
-    setActiveId(null)
-    resetSave()
-  }
 
   return (
     <section className="page page-split">
@@ -108,28 +100,6 @@ export function AlbumPage() {
             </button>
           )
         })}
-      </div>
-
-      <div className="reset-row">
-        {confirm ? (
-          <>
-            <p>
-              {starter
-                ? `清空后库存和图鉴回到最初，并赠送 1 个${starter.seriesName} · ${starter.tierName}。`
-                : '清空后库存和图鉴回到最初。'}
-            </p>
-            <button type="button" className="btn btn-danger" onClick={confirmReset}>
-              确认清空
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setConfirm(false)}>
-              取消
-            </button>
-          </>
-        ) : (
-          <button type="button" className="btn btn-ghost" onClick={() => setConfirm(true)}>
-            重置存档
-          </button>
-        )}
       </div>
       </div>
 
