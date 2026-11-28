@@ -59,6 +59,9 @@ export const CARDS: readonly CardDef[] = [...SOLAR_CARDS, ...PLATE_CARDS]
 /** 产品名。顶栏、网页标题和卡背都用这一句。 */
 export const BRAND_NAME = '开缄社'
 
+/** 顶栏和卡背的印章。文件在 public 根目录，站点有子路径时跟着前缀走。 */
+export const BRAND_SEAL = `${import.meta.env.BASE_URL}brand-seal.png`
+
 /** 在售卡包。新增时加一条，卡牌的 seriesId 填同一个 id。 */
 export const PACK_SERIES: readonly PackSeries[] = [
   {

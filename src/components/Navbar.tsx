@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { BRAND_NAME } from '../data/catalog'
+import { BRAND_NAME, BRAND_SEAL } from '../data/catalog'
 import type { PageId } from '../types/game'
 import { countPacks, goTo, useGameState } from '../store/useGameStore'
 import { SettingsDialog } from './SettingsDialog'
@@ -29,7 +29,7 @@ export function Navbar() {
       <div className="topbar">
         <button type="button" className="brand" onClick={() => goTo('home')}>
           <span className="brand-seal" aria-hidden>
-            <img src="/brand-seal.png" alt="" />
+            <img src={BRAND_SEAL} alt="" />
           </span>
           {BRAND_NAME}
         </button>

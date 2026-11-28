@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { BRAND_NAME, PACK_SERIES, RARITY_LABEL, formatSerial } from '../data/catalog'
+import { BRAND_NAME, BRAND_SEAL, PACK_SERIES, RARITY_LABEL, formatSerial } from '../data/catalog'
 import { SEASON_LABEL } from '../data/solarTerms'
 import { usePointerTilt } from '../hooks/usePointerTilt'
 import type { CardDef, Rarity } from '../types/game'
@@ -231,7 +231,7 @@ export function CardVisual({
         )}
         {(flippable || still) && (
           <div className="card-face card-back is-paper-back">
-            <img className="leaf-back-logo" src="/brand-seal.png" alt="" />
+            <img className="leaf-back-logo" src={BRAND_SEAL} alt="" />
             <div className="leaf-back-word">
               <span className="leaf-back-house">{BRAND_NAME}</span>
               <span className="leaf-back-set">{backName}</span>
