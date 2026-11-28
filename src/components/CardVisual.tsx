@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
-import { PACK_SERIES, RARITY_LABEL, formatSerial } from '../data/catalog'
+import { BRAND_NAME, PACK_SERIES, RARITY_LABEL, formatSerial } from '../data/catalog'
 import { SEASON_LABEL } from '../data/solarTerms'
 import { usePointerTilt } from '../hooks/usePointerTilt'
 import type { CardDef, Rarity } from '../types/game'
@@ -82,11 +82,10 @@ function CardBoard() {
   )
 }
 
-/** 卡背第二行。节气沿用原来的两行，别的套印短码和名称。 */
-function backLines(seriesId: string) {
-  if (seriesId === 'solar') return ['节气', '二十四'] as const
+/** 卡背下半：这一套的名称和短码。 */
+function seriesBack(seriesId: string) {
   const series = PACK_SERIES.find((item) => item.id === seriesId)
-  return [series?.code ?? '岁', series?.name ?? ''] as const
+  return [series?.name ?? '', series?.code ?? ''] as const
 }
 
 /** 卡面。节气是册页，其余套是整张画心，编号和品级都印在面上。 */
@@ -122,7 +121,7 @@ export function CardVisual({
   const high = HIGH_GRADE.has(card.rarity)
 
   const plate = card.face === 'plate'
-  const [backCode, backName] = backLines(card.seriesId)
+  const [backName, backCode] = seriesBack(card.seriesId)
   const face = plate ? (
     <div className={`card-face card-front is-plate${card.seriesId === 'abyss' ? ' is-abyss' : ''}${silk ? ' is-silk' : ''}${flippable ? '' : ' is-flat'}`}>
       <PlateArt art={card.art} />
@@ -232,12 +231,11 @@ export function CardVisual({
         )}
         {(flippable || still) && (
           <div className="card-face card-back is-paper-back">
-            <div className="leaf-back-seal" aria-hidden>
-              岁
-            </div>
+            <img className="leaf-back-logo" src="/brand-seal.png" alt="" />
             <div className="leaf-back-word">
-              <span>{backCode}</span>
-              <span>{backName}</span>
+              <span className="leaf-back-house">{BRAND_NAME}</span>
+              <span className="leaf-back-set">{backName}</span>
+              <span className="leaf-back-code">{backCode}</span>
             </div>
           </div>
         )}

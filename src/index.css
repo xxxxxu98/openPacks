@@ -1415,15 +1415,16 @@ button.tear-track:active { cursor: grabbing; }
 
 /* 二十四节气：册页纸色压过稀有度彩边，卡包改成纸封。 */
 .brand-seal {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
-  background: #8e3a38;
-  color: #f6f0e4;
-  font-family: "Noto Serif SC", "Songti SC", "STSong", SimSun, serif;
-  font-size: 13px;
-  line-height: 1;
+}
+.brand-seal img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 .brand small { color: #cbbba6; }
 
@@ -1633,7 +1634,7 @@ button.tear-track:active { cursor: grabbing; }
   --ink: #1c2836;
   --pigment: #3d6280;
 }
-/* 品级五色：松烟灰、花青、石绿、泥金、青莲。朱红只留给岁印。 */
+/* 品级五色：松烟灰、花青、石绿、泥金、青莲。朱红只留给印记。 */
 .rarity-N .card-front.is-leaf {
   --grade: #7a7268;
   --rim: 1.5px;
@@ -1948,32 +1949,36 @@ button.tear-track:active { cursor: grabbing; }
     inset 0 0 0 9px rgba(142, 58, 56, 0.28),
     0 22px 46px rgba(0, 0, 0, 0.85);
 }
-.leaf-back-seal {
-  width: 34%;
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  border: 1.5px solid #8e3a38;
-  color: #8e3a38;
-  font-family: "Noto Serif SC", "Songti SC", "STSong", SimSun, serif;
-  font-size: 18cqi;
-  font-weight: 600;
-  line-height: 1;
+.leaf-back-logo {
+  width: 28%;
+  height: auto;
+  display: block;
 }
 .leaf-back-word {
   display: grid;
   justify-items: center;
-  gap: 1.2cqi;
+  gap: 1.6cqi;
+}
+.leaf-back-house {
+  color: #8e3a38;
+  font-size: 4.6cqi;
+  font-weight: 600;
   letter-spacing: 0.42em;
   text-indent: 0.42em;
+  line-height: 1;
 }
-.leaf-back-word span:first-child {
-  font-size: 8cqi;
+.leaf-back-set {
+  font-size: 6.2cqi;
   font-weight: 600;
+  letter-spacing: 0.18em;
+  text-indent: 0.18em;
+  line-height: 1.2;
 }
-.leaf-back-word span:last-child {
-  font-size: 3.6cqi;
-  letter-spacing: 0.34em;
+.leaf-back-code {
+  font-size: 3.4cqi;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  line-height: 1;
   opacity: 0.62;
 }
 .inspect-hou {

@@ -143,11 +143,11 @@ export function PackVisual({
           {coverSrc ? (
             <div className="pack-window" aria-hidden>
               <img src={coverSrc} alt="" />
-              <i className="pack-window-seal">岁</i>
+              <i className="pack-window-seal">{pack.mark}</i>
             </div>
           ) : (
             <div className="pack-seal" aria-hidden>
-              <span>岁</span>
+              <span>{pack.mark}</span>
             </div>
           )}
           <div className="pack-edition">

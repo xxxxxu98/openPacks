@@ -93,6 +93,8 @@ export interface PackSeries {
   id: string
   name: string
   code: string
+  /** 这一套的印，一个字，盖在卡背和封上。 */
+  mark: string
   blurb: string
   accent: string
   crest: PackCrest
@@ -116,6 +118,7 @@ export interface PackOffer {
   seriesName: string
   tierName: string
   code: string
+  mark: string
   cardCount: number
   floor: Rarity | null
   blurb: string

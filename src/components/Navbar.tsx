@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '../data/catalog'
 import type { PageId } from '../types/game'
 import { countPacks, goTo, toggleLighting, toggleMuted, useGameState } from '../store/useGameStore'
 
@@ -18,9 +19,9 @@ export function Navbar() {
       <div className="topbar">
         <button type="button" className="brand" onClick={() => goTo('home')}>
           <span className="brand-seal" aria-hidden>
-            岁
+            <img src="/brand-seal.png" alt="" />
           </span>
-          节气 <small>廿四</small>
+          {BRAND_NAME}
         </button>
         <nav className="nav-row" aria-label="页面">
           {LINKS.map((link) => (
